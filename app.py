@@ -11,6 +11,23 @@ Built for accessibility and sign language communication.
 """
 
 import streamlit as st
+
+
+def _is_streamlit_run() -> bool:
+    """Return True when this script is executed by Streamlit."""
+    try:
+        return st.runtime.scriptrunner.get_script_run_ctx() is not None
+    except Exception:
+        return False
+
+
+if not _is_streamlit_run():
+    print("ERROR: This application must be launched with Streamlit.")
+    print("Run this command instead:")
+    print("  python -m streamlit run app.py")
+    raise SystemExit(1)
+
+
 import cv2
 import numpy as np
 import time
@@ -402,6 +419,12 @@ with tab1:
         st.markdown("**Full Sentence:**")
         full_sentence = display_info.get('sentence', '')
         st.text_area("Sentence", value=full_sentence, height=100, disabled=True, key="sentence_display")
+        
+        # Model warning if missing
+        if st.session_state.gesture_detector.model is None:
+            st.warning(
+                "Gesture model missing. Add `model/gesture_model.h5` to the project or train it by running `python model/train_model.py`."
+            )
         
         # Metrics
         col_m1, col_m2 = st.columns(2)

@@ -20,7 +20,7 @@ This project enables seamless **sign language communication** by converting hand
 ✅ **Bilingual Support** - English-to-Hindi translation with TTS  
 ✅ **Conversation History** - Save, export, and analyze sign language conversations  
 ✅ **Web Interface** - Interactive Streamlit dashboard with live visualization  
-✅ **Production-Ready** - Error handling, fallbacks, and graceful degradation  
+✅ **Production-Ready** - Error handling, fallbacks, and graceful degradation
 
 ---
 
@@ -64,21 +64,22 @@ sign_language_project/
 
 ## 📊 Tech Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Vision** | MediaPipe, OpenCV, TensorFlow | Hand detection & gesture recognition |
-| **Audio** | Librosa, SoundDevice | Audio feature extraction & recording |
-| **ML** | Scikit-learn (SVM) | Emotion classification |
-| **Speech** | gTTS | Text-to-speech synthesis |
-| **Translation** | googletrans | English-to-Hindi conversion |
-| **Frontend** | Streamlit | Web interface & real-time visualization |
-| **Data** | NumPy, Pandas | Array operations & analytics |
+| Component       | Technology                    | Purpose                                 |
+| --------------- | ----------------------------- | --------------------------------------- |
+| **Vision**      | MediaPipe, OpenCV, TensorFlow | Hand detection & gesture recognition    |
+| **Audio**       | Librosa, SoundDevice          | Audio feature extraction & recording    |
+| **ML**          | Scikit-learn (SVM)            | Emotion classification                  |
+| **Speech**      | gTTS                          | Text-to-speech synthesis                |
+| **Translation** | googletrans                   | English-to-Hindi conversion             |
+| **Frontend**    | Streamlit                     | Web interface & real-time visualization |
+| **Data**        | NumPy, Pandas                 | Array operations & analytics            |
 
 ---
 
 ## 🚀 Quick Start
 
 ### 1. **Prerequisites**
+
 - Python 3.8 or higher
 - Webcam (for gesture detection)
 - Microphone (for emotion detection - optional)
@@ -106,6 +107,26 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+If `streamlit` is not on your PATH, use the Python module launcher instead:
+
+```bash
+python -m streamlit run app.py
+```
+
+On Windows, you can also run the included helper script:
+
+```powershell
+run_app.bat
+```
+
+The app requires a trained gesture model file at `model/gesture_model.h5` to recognize letters. If it is missing, the app will still run but cannot detect words.
+
+To generate the model, run:
+
+```bash
+python model/train_model.py
+```
+
 The app will open in your browser at `http://localhost:8501`
 
 ---
@@ -113,33 +134,39 @@ The app will open in your browser at `http://localhost:8501`
 ## 📖 Usage Guide
 
 ### Step 1: Start Live Detection
+
 1. Go to **Live Detection** tab
 2. Click **▶️ Start Camera**
 3. Position your hand clearly in front of the webcam
 
 ### Step 2: Show Gestures
+
 - Make sign language gestures for letters (A-Z) or digits (0-9)
 - MediaPipe detects 21-point hand landmarks in real-time
 - CNN classifies into 39 gesture classes
 
 ### Step 3: Build Sentences
+
 - Each gesture adds a letter to the word
 - Click **🔤 Add Space** to separate words
 - Click **⌫ Clear Word** to erase the current word
 - Click **✅ Complete** to finalize the sentence
 
 ### Step 4: Detect Emotion (Optional)
+
 1. Click **🎙️ Record & Detect Emotion**
 2. Speak naturally for 3 seconds
 3. System analyzes and returns emotion class
 4. Supported emotions: Happy, Sad, Angry, Calm, Neutral, Fearful, Surprised
 
 ### Step 5: Generate Speech
+
 1. Click **🔊 Speak Sentence**
 2. Speech plays with emotion-based tone modulation
 3. Speed/pitch varies based on detected emotion
 
 ### Step 6: Translate & Export
+
 1. Click **🌐 Translate to Hindi** for instant translation
 2. Click **🔊 Speak Hindi** for bilingual audio
 3. Go to **Dashboard** to view history and export as CSV
@@ -165,12 +192,14 @@ python model/train_model.py
 ```
 
 **Dataset Specs:**
+
 - **Input Features:** 63 (21 hand landmarks × 3 coordinates)
 - **Classes:** 39 (A-Z, 0-9, SPACE, CLEAR, NOTHING)
 - **Samples:** 200-300 per class for best accuracy
 - **Total Training Time:** ~5-10 minutes
 
 **Model Architecture:**
+
 - Dense(512) → BatchNorm → Dropout(0.4)
 - Dense(256) → BatchNorm → Dropout(0.3)
 - Dense(128) → Dropout(0.2)
@@ -183,6 +212,7 @@ python model/train_model.py
 The emotion model uses **Librosa features** and **SVM classifier**:
 
 **Features Extracted:**
+
 - **MFCC** (40 coefficients + std): 80
 - **Chroma** (12 features): 12
 - **Mel Spectrogram** (20 features): 20
@@ -197,15 +227,17 @@ The emotion model uses **Librosa features** and **SVM classifier**:
 ## 🎤 Gesture Reference
 
 ### Letters (A-Z)
-| Letter | Hand Shape |
-|--------|-----------|
-| **A** | Closed fist, thumb on side |
-| **B** | Open palm, fingers together |
-| **C** | Thumb and fingers form C |
-| **D** | Index finger up, rest folded |
-| ... | (Standard ASL handshapes) |
+
+| Letter | Hand Shape                   |
+| ------ | ---------------------------- |
+| **A**  | Closed fist, thumb on side   |
+| **B**  | Open palm, fingers together  |
+| **C**  | Thumb and fingers form C     |
+| **D**  | Index finger up, rest folded |
+| ...    | (Standard ASL handshapes)    |
 
 ### Special Gestures
+
 - **SPACE** (0️⃣): Open palm, all fingers spread
 - **CLEAR** (🛑): Closed fist (erases current letter)
 - **NOTHING** (❌): No hand detected
@@ -216,13 +248,13 @@ The emotion model uses **Librosa features** and **SVM classifier**:
 
 ### Adjustable Settings (in Sidebar)
 
-| Setting | Range | Default | Effect |
-|---------|-------|---------|--------|
-| Gesture Confidence | 0.5-0.95 | 0.75 | Min confidence to accept gesture |
-| Letter Cooldown | 10-40 frames | 20 | Frames between letter captures |
-| TTS Language | EN/HI | EN | Output speech language |
-| Emotion Detection | On/Off | On | Enable voice emotion analysis |
-| Hindi Translation | On/Off | On | Enable bilingual translation |
+| Setting            | Range        | Default | Effect                           |
+| ------------------ | ------------ | ------- | -------------------------------- |
+| Gesture Confidence | 0.5-0.95     | 0.75    | Min confidence to accept gesture |
+| Letter Cooldown    | 10-40 frames | 20      | Frames between letter captures   |
+| TTS Language       | EN/HI        | EN      | Output speech language           |
+| Emotion Detection  | On/Off       | On      | Enable voice emotion analysis    |
+| Hindi Translation  | On/Off       | On      | Enable bilingual translation     |
 
 ---
 
@@ -240,32 +272,42 @@ The **Dashboard** tab provides:
 ## 🔧 Troubleshooting
 
 ### Issue: "No hand detected"
-**Solution:** 
+
+**Solution:**
+
 - Ensure adequate lighting
 - Position hand within camera view
 - Use plain background for better contrast
 - Increase detection confidence (lower threshold)
 
 ### Issue: "Webcam not opening"
+
 **Solution:**
+
 - Check if another application is using the camera
 - Restart the app
 - Try different camera device: Edit gesture_detector.py line with `cv2.VideoCapture(1)` (try 0, 1, 2)
 
 ### Issue: "Low gesture accuracy"
+
 **Solution:**
+
 - Collect more training data (300+ samples per class)
 - Ensure consistent lighting when collecting
 - Retrain model: `python model/train_model.py`
 
 ### Issue: "Translation not working"
+
 **Solution:**
+
 - Check internet connection (uses Google Translate API)
 - Try again in a moment (API rate limiting)
 - Translation fails gracefully, shows original text
 
 ### Issue: "Emotion detection not working"
+
 **Solution:**
+
 - Check microphone permission
 - Ensure quiet environment for recording
 - Speak clearly during 3-second recording window
@@ -277,23 +319,23 @@ The **Dashboard** tab provides:
 ### For Your CV/Portfolio
 
 ```
-Sign Language to Emotional Speech Converter | 
+Sign Language to Emotional Speech Converter |
 Python, MediaPipe, TensorFlow, Librosa, Streamlit
 
-• Built a multi-modal AI accessibility system combining real-time 
-  21-point hand landmark detection (MediaPipe) with CNN-based gesture 
+• Built a multi-modal AI accessibility system combining real-time
+  21-point hand landmark detection (MediaPipe) with CNN-based gesture
   classification across 39 sign classes (A-Z, 0-9, controls)
 
-• Integrated voice emotion detection pipeline using MFCC/Chroma/Mel 
+• Integrated voice emotion detection pipeline using MFCC/Chroma/Mel
   feature extraction with SVM classifier trained on speech audio data
 
-• Developed sentence builder engine with letter smoothing (7-frame 
+• Developed sentence builder engine with letter smoothing (7-frame
   buffer), cooldown logic, and intelligent word completion system
 
-• Added English-to-Hindi translation (googletrans) and emotionally-toned 
+• Added English-to-Hindi translation (googletrans) and emotionally-toned
   gTTS voice output with adaptive tone modulation based on detected emotion
 
-• Deployed as multi-tab Streamlit application with real-time confidence 
+• Deployed as multi-tab Streamlit application with real-time confidence
   visualization, conversation history dashboard, and CSV export functionality
 
 • Technologies: Computer Vision, Deep Learning, Audio ML, NLP, Web Framework
@@ -304,11 +346,13 @@ Python, MediaPipe, TensorFlow, Librosa, Streamlit
 ## 📈 Model Performance
 
 ### Gesture Recognition
+
 - **Accuracy:** 92-98% (depends on training data quality)
 - **Latency:** <100ms per frame (real-time)
 - **FPS:** 30 frames/second
 
 ### Emotion Detection
+
 - **Accuracy:** 85-92% (on RAVDESS dataset)
 - **Processing Time:** <1 second
 
@@ -332,11 +376,13 @@ Python, MediaPipe, TensorFlow, Librosa, Streamlit
 ## 📝 Dataset Information
 
 ### Training Data Sources
+
 - **Gesture Data:** Custom collected via `data/collector.py`
 - **Emotion Data:** Optional - currently uses fallback neutral model
 - **Translation:** Google Translate API (online)
 
 ### Data Collection Guidelines
+
 1. Ensure even lighting across all samples
 2. Use consistent camera angle and distance (12-24 inches)
 3. Show one hand per gesture
@@ -381,7 +427,7 @@ This project demonstrates mastery in:
 ✅ **Web Development** - Streamlit, real-time applications  
 ✅ **Full-Stack** - End-to-end ML pipeline  
 ✅ **Accessibility** - Inclusive technology design  
-✅ **DevOps** - Packaging, deployment, versioning  
+✅ **DevOps** - Packaging, deployment, versioning
 
 ---
 
@@ -398,6 +444,7 @@ This project demonstrates mastery in:
 ## 🤟 Support
 
 For questions or issues:
+
 1. Check the **How to Use** tab in the app
 2. Review the Troubleshooting section above
 3. Check GitHub Issues

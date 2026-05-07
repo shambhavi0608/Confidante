@@ -62,7 +62,9 @@ class GestureDetector:
                 print(f"✓ Model loaded successfully from {model_path}")
             except Exception as e:
                 print(f"⚠ Warning: Could not load model from {model_path}: {e}")
-        
+        else:
+            print(f"⚠ Warning: Gesture model file not found at {model_path}")
+
         # Load label encoder if it exists
         self.label_encoder = None
         if os.path.exists(encoder_path):
