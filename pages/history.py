@@ -13,6 +13,7 @@ from utils.session import get_history
 
 def render_page(config: Dict[str, Any]) -> None:
     """Render the SignSpeak AI translation history screen."""
+    st.write("✅ History page loaded successfully")
     st.markdown(
         """
         <div style="display:flex;align-items:end;justify-content:space-between;margin-bottom:22px;">
