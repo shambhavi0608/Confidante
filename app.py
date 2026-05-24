@@ -175,13 +175,60 @@ def load_page_renderer(module_name: str) -> Callable[[Dict[str, Any]], None]:
 
 def main() -> None:
     """Run the Streamlit application."""
-    # Minimal test - just render basic content
-    st.title("SignSpeak AI - Test")
-    st.write("If you can see this, Streamlit is working")
-    st.button("Test Button")
+    st.set_page_config(page_title="SignSpeak AI", page_icon="🔴", layout="wide", initial_sidebar_state="expanded")
+    inject_dark_theme()
     
-    # Don't proceed with the rest of the app for now
-    return
+    try:
+        config = load_config()
+        initialize_session(config)
+    except Exception as exc:
+        st.error(f"Startup failed: {exc}")
+        import traceback
+        st.error(traceback.format_exc())
+        return
+    
+    st.sidebar.markdown(
+        """
+        <div class="ss-logo">
+            <div class="ss-logo-main">SignSpeak AI</div>
+            <div class="ss-logo-sub">Premium Sign-to-Speech</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    pages = get_pages()
+    selected_page = st.sidebar.radio("Navigation", list(pages.keys()), label_visibility="collapsed")
+    st.sidebar.button("Start Session", use_container_width=True, type="primary")
+    st.sidebar.markdown(
+        """
+        <div class="ss-profile">
+            <div class="ss-avatar">SA</div>
+            <div>
+                <div style="font-weight:900;">Alex Morgan</div>
+                <div class="ss-muted" style="font-size:.82rem;">Pro workspace</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    # Render selected page with error handling
+    try:
+        st.write(f"DEBUG: Loading page: {selected_page}")
+        renderer = load_page_renderer(pages[selected_page])
+        st.write(f"DEBUG: Renderer loaded successfully")
+        renderer(config)
+        st.write(f"DEBUG: Page rendered successfully")
+    except Exception as exc:
+        st.error(f"Page failed to load: {exc}")
+        import traceback
+        st.error(traceback.format_exc())
+        
+        # Show fallback content
+        st.markdown("### 🚨 Page Error")
+        st.write(f"The selected page '{selected_page}' encountered an error.")
+        st.write("Please check the error details above or try selecting a different page.")
     st.sidebar.markdown(
         """
         <div class="ss-logo">
