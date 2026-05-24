@@ -229,43 +229,6 @@ def main() -> None:
         st.markdown("### 🚨 Page Error")
         st.write(f"The selected page '{selected_page}' encountered an error.")
         st.write("Please check the error details above or try selecting a different page.")
-    st.sidebar.markdown(
-        """
-        <div class="ss-logo">
-            <div class="ss-logo-main">SignSpeak AI</div>
-            <div class="ss-logo-sub">Premium Sign-to-Speech</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    pages = get_pages()
-    selected_page = st.sidebar.radio("Navigation", list(pages.keys()), label_visibility="collapsed")
-    st.sidebar.button("Start Session", use_container_width=True, type="primary")
-    st.sidebar.markdown(
-        """
-        <div class="ss-profile">
-            <div class="ss-avatar">SA</div>
-            <div>
-                <div style="font-weight:900;">Alex Morgan</div>
-                <div class="ss-muted" style="font-size:.82rem;">Pro workspace</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    try:
-        st.write(f"DEBUG: Loading page: {pages[selected_page]}")
-        renderer = load_page_renderer(pages[selected_page])
-        st.write(f"DEBUG: Renderer loaded: {renderer}")
-        renderer(config)
-        st.write(f"DEBUG: Page rendered")
-    except Exception as exc:
-        st.error(f"Page failed: {exc}")
-        import traceback
-        st.error(traceback.format_exc())
-    
-    # Test rendering
-    st.markdown("<h1 style='color: white; background: black;'>TEST: Main content area</h1>", unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
