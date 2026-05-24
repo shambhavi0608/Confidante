@@ -29,6 +29,7 @@ def get_tts_service() -> TextToSpeechService:
 
 def render_page(config: Dict[str, Any]) -> None:
     """Render the SignSpeak AI live translator screen."""
+    st.write("✅ Live Detection page loaded successfully")
     classes = tuple(config["gesture"]["classes"])
     recognizer = get_gesture_recognizer(classes, config["gesture"]["model_path"])
     prediction = {"label": "HELLO", "confidence": 0.92, "probabilities": _default_probabilities()}
