@@ -175,23 +175,13 @@ def load_page_renderer(module_name: str) -> Callable[[Dict[str, Any]], None]:
 
 def main() -> None:
     """Run the Streamlit application."""
-    st.set_page_config(page_title="SignSpeak AI", page_icon="🔴", layout="wide", initial_sidebar_state="expanded")
-    inject_dark_theme()
+    # Minimal test - just render basic content
+    st.title("SignSpeak AI - Test")
+    st.write("If you can see this, Streamlit is working")
+    st.button("Test Button")
     
-    # Test simple rendering first
-    st.markdown("<h1 style='color: white; background: black; padding: 20px;'>TEST: App is running</h1>", unsafe_allow_html=True)
-    st.write("DEBUG: Main function called")
-    
-    try:
-        config = load_config()
-        st.write(f"DEBUG: Config loaded successfully")
-        initialize_session(config)
-        st.write("DEBUG: Session initialized")
-    except Exception as exc:
-        st.error(f"Startup failed: {exc}")
-        import traceback
-        st.error(traceback.format_exc())
-        return
+    # Don't proceed with the rest of the app for now
+    return
     st.sidebar.markdown(
         """
         <div class="ss-logo">
