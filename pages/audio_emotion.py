@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from html import escape
 import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.audio_module import AudioEmotionError, AudioEmotionRecognizer
@@ -30,11 +32,25 @@ def render_page(config: Dict[str, Any]) -> None:
     )
     if not recognizer.model:
         st.warning("Emotion model file is missing. Heuristic fallback is active.")
-    audio_file = _get_audio_input()
+    input_column, result_column = st.columns([1.1, 1], gap="large")
+    with input_column:
+        st.markdown(
+            """
+            <div class="ssc-card">
+                <div class="ssc-card-label">Voice capture</div>
+                <div style="font-size:1.35rem;font-weight:900;color:#F5F0FF;">Emotion sensor</div>
+                <div class="ssc-muted" style="margin-top:0.45rem;">Record or upload a short speech sample.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        audio_file = _get_audio_input()
+        if audio_file is not None:
+            st.audio(audio_file)
     if audio_file is None:
-        st.info("Upload a short speech clip to detect emotion.")
+        with result_column:
+            _render_emotion_card("neutral", 0.0)
         return
-    st.audio(audio_file)
     temp_path: Path | None = None
     try:
         suffix = Path(audio_file.name).suffix or ".wav"
@@ -43,12 +59,9 @@ def render_page(config: Dict[str, Any]) -> None:
             temp_path = Path(temp_file.name)
         result = recognizer.predict_file(temp_path)
         st.session_state.emotion = result["emotion"]
-        st.metric("Detected emotion", result["emotion"].title())
-        st.metric("Confidence", f"{result['confidence']:.0%}")
-        probabilities = pd.DataFrame(result["probabilities"].items(), columns=["emotion", "probability"])
-        fig = px.bar(probabilities, x="emotion", y="probability", range_y=[0, 1], color_discrete_sequence=["#059669"])
-        fig.update_layout(template="plotly_dark", paper_bgcolor="#0D1117", plot_bgcolor="#0D1117")
-        st.plotly_chart(fig, use_container_width=True)
+        with result_column:
+            _render_emotion_card(result["emotion"], result["confidence"])
+            st.plotly_chart(_build_emotion_chart(result["probabilities"]), use_container_width=True)
     except AudioEmotionError as exc:
         st.error(f"Emotion detection failed: {exc}")
     except Exception as exc:
@@ -65,3 +78,53 @@ def _get_audio_input() -> Any:
         if recorded_audio is not None:
             return recorded_audio
     return st.file_uploader("Upload WAV/MP3 audio", type=["wav", "mp3", "m4a", "ogg"])
+
+
+def _render_emotion_card(emotion: str, confidence: float) -> None:
+    """Render the current emotion as a color-coded badge card."""
+    badge_class = f"ssc-badge-{emotion.lower()}"
+    safe_emotion = escape(emotion.title())
+    st.markdown(
+        f"""
+        <div class="ssc-card">
+            <div class="ssc-card-label">Emotion aura</div>
+            <div class="ssc-emotion-orb ssc-emotion-{emotion.lower()}">
+                <div>
+                    <span class="ssc-badge {badge_class}">{safe_emotion}</span>
+                    <div style="font-size:2.4rem;font-weight:950;margin-top:0.8rem;color:#F5F0FF;">{confidence:.0%}</div>
+                    <div class="ssc-muted" style="font-weight:800;">confidence</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _build_emotion_chart(probabilities: Dict[str, float]) -> go.Figure:
+    """Build an animated-style emotion probability chart using Plotly transitions."""
+    emotion_colors = {
+        "happy": "#39D98A",
+        "sad": "#5AA7FF",
+        "angry": "#FF5E6C",
+        "neutral": "#8B8494",
+    }
+    frame = pd.DataFrame(probabilities.items(), columns=["emotion", "probability"])
+    colors = [emotion_colors.get(emotion, "#9B6DFF") for emotion in frame["emotion"]]
+    fig = px.bar(frame, x="emotion", y="probability", range_y=[0, 1])
+    fig.update_traces(
+        marker_color=colors,
+        marker_line_width=0,
+        hovertemplate="%{x}: %{y:.0%}<extra></extra>",
+    )
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(255,255,255,0.03)",
+        font={"color": "#F5F0FF"},
+        margin={"l": 10, "r": 10, "t": 28, "b": 10},
+        title={"text": "Probability spectrum", "font": {"size": 16, "color": "#F5F0FF"}},
+        transition={"duration": 650, "easing": "cubic-in-out"},
+        bargap=0.32,
+    )
+    return fig

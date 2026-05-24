@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+from html import escape
 from pathlib import Path
 from typing import Any, Dict
 
 import cv2
 import numpy as np
-import pandas as pd
-import plotly.express as px
 import streamlit as st
 
 from src.gesture_module import GestureDetectionError, GestureRecognizer
@@ -40,33 +39,40 @@ def render_page(config: Dict[str, Any]) -> None:
     )
     if not recognizer.model:
         st.warning("Gesture model file is missing. Heuristic fallback is active.")
-    image = st.camera_input("Webcam frame")
-    columns = st.columns([2, 1])
+    top_columns = st.columns([1.05, 1], gap="large")
     prediction = {"label": "NOTHING", "confidence": 0.0, "probabilities": {label: 0.0 for label in classes}}
-    if image is not None:
-        try:
-            bytes_data = image.getvalue()
-            frame = cv2.imdecode(np.frombuffer(bytes_data, dtype=np.uint8), cv2.IMREAD_COLOR)
-            prediction = recognizer.predict_frame(frame)
-            stable_label = st.session_state.smoother.add(prediction["label"], prediction["confidence"])
-            if stable_label:
-                add_gesture_token(stable_label)
-            columns[0].image(cv2.cvtColor(prediction["frame"], cv2.COLOR_BGR2RGB), channels="RGB", use_column_width=True)
-        except GestureDetectionError as exc:
-            st.error(f"Gesture detection failed: {exc}")
-        except Exception as exc:
-            st.error(f"Could not process webcam frame: {exc}")
-    with columns[1]:
-        st.metric("Gesture", prediction["label"])
-        st.metric("Confidence", f"{prediction['confidence']:.0%}")
-        probabilities = pd.DataFrame(
-            sorted(prediction["probabilities"].items(), key=lambda item: item[1], reverse=True)[:10],
-            columns=["class", "probability"],
-        )
-        fig = px.bar(probabilities, x="class", y="probability", range_y=[0, 1], color_discrete_sequence=["#7C3AED"])
-        fig.update_layout(template="plotly_dark", paper_bgcolor="#0D1117", plot_bgcolor="#0D1117")
-        st.plotly_chart(fig, use_container_width=True)
-    st.text_area("Sentence", value=st.session_state.sentence, height=120, disabled=True)
+    with top_columns[0]:
+        image = st.camera_input("Webcam frame")
+        if image is not None:
+            try:
+                bytes_data = image.getvalue()
+                frame = cv2.imdecode(np.frombuffer(bytes_data, dtype=np.uint8), cv2.IMREAD_COLOR)
+                prediction = recognizer.predict_frame(frame)
+                stable_label = st.session_state.smoother.add(prediction["label"], prediction["confidence"])
+                if stable_label:
+                    add_gesture_token(stable_label)
+                st.image(
+                    cv2.cvtColor(prediction["frame"], cv2.COLOR_BGR2RGB),
+                    channels="RGB",
+                    use_container_width=True,
+                )
+            except GestureDetectionError as exc:
+                st.error(f"Gesture detection failed: {exc}")
+            except Exception as exc:
+                st.error(f"Could not process webcam frame: {exc}")
+    with top_columns[1]:
+        _render_gesture_card(prediction["label"], prediction["confidence"])
+        _render_confidence_bars(prediction["probabilities"])
+    sentence_text = escape(st.session_state.sentence or "Sentence will appear here.")
+    st.markdown(
+        f"""
+        <div class="ssc-card" style="margin-top:1rem;box-shadow:0 0 38px rgba(232,137,60,0.18);">
+            <div class="ssc-card-label">Current sentence</div>
+            <div class="ssc-sentence">{sentence_text}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     control_columns = st.columns(4)
     if control_columns[0].button("Backspace", use_container_width=True):
         backspace_sentence()
@@ -77,8 +83,55 @@ def render_page(config: Dict[str, Any]) -> None:
     if control_columns[2].button("Add space", use_container_width=True):
         add_gesture_token("SPACE")
         st.rerun()
-    if control_columns[3].button("Speak", use_container_width=True, type="primary"):
+    if control_columns[3].button("Speak sentence", use_container_width=True, type="primary"):
         _speak_current_sentence()
+
+
+def _render_gesture_card(label: str, confidence: float) -> None:
+    """Render the large gesture display card."""
+    safe_label = escape(label)
+    st.markdown(
+        f"""
+        <div class="ssc-card ssc-gesture-dial-card">
+            <div class="ssc-card-label">Gesture dial</div>
+            <div class="ssc-gesture-dial">
+                <div class="ssc-gesture-dial-inner">
+                    <div class="ssc-gesture-value">{safe_label}</div>
+                    <div class="ssc-confidence-text">{confidence:.0%} confidence</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_confidence_bars(probabilities: Dict[str, float]) -> None:
+    """Render animated gradient confidence bars for top gesture classes."""
+    rows = []
+    for label, probability in sorted(probabilities.items(), key=lambda item: item[1], reverse=True)[:7]:
+        safe_label = escape(label)
+        width = max(2.0, min(100.0, probability * 100.0))
+        rows.append(
+            f"""
+            <div class="ssc-confidence-row">
+                <div class="ssc-muted" style="font-weight:800;">{safe_label}</div>
+                <div class="ssc-confidence-track">
+                    <div class="ssc-confidence-fill" style="width:{width:.2f}%;"></div>
+                </div>
+                <div style="font-weight:850;color:#F5F0FF;">{probability:.0%}</div>
+            </div>
+            """
+        )
+    st.markdown(
+        f"""
+        <div class="ssc-card" style="margin-top:1rem;">
+            <div class="ssc-card-label">Confidence field</div>
+            <div class="ssc-confidence-list">{''.join(rows)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def _speak_current_sentence() -> None:
