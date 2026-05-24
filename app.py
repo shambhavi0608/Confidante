@@ -174,10 +174,14 @@ def load_page_renderer(module_name: str) -> Callable[[Dict[str, Any]], None]:
 def main() -> None:
     """Run the Streamlit application."""
     st.set_page_config(page_title="SignSpeak AI", page_icon="🔴", layout="wide", initial_sidebar_state="expanded")
+    st.write("DEBUG: Main function called")
     inject_dark_theme()
+    st.write("DEBUG: Theme injected")
     try:
         config = load_config()
+        st.write(f"DEBUG: Config loaded: {config}")
         initialize_session(config)
+        st.write("DEBUG: Session initialized")
     except Exception as exc:
         st.error(f"Startup failed: {exc}")
         return
@@ -206,9 +210,15 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     try:
-        load_page_renderer(pages[selected_page])(config)
+        st.write(f"DEBUG: Loading page: {pages[selected_page]}")
+        renderer = load_page_renderer(pages[selected_page])
+        st.write(f"DEBUG: Renderer loaded: {renderer}")
+        renderer(config)
+        st.write(f"DEBUG: Page rendered")
     except Exception as exc:
         st.error(f"Page failed: {exc}")
+        import traceback
+        st.error(traceback.format_exc())
 
 
 if __name__ == "__main__":
