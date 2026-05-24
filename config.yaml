@@ -1,0 +1,71 @@
+app:
+  name: Sign Speech Converter
+  default_language: en
+  supported_languages:
+    en: English
+    hi: Hindi
+  theme:
+    background: "#0D1117"
+    surface: "#161B22"
+    accent: "#7C3AED"
+    success: "#059669"
+gesture:
+  model_path: models/gesture_cnn.keras
+  classes:
+    - A
+    - B
+    - C
+    - D
+    - E
+    - F
+    - G
+    - H
+    - I
+    - J
+    - K
+    - L
+    - M
+    - N
+    - O
+    - P
+    - Q
+    - R
+    - S
+    - T
+    - U
+    - V
+    - W
+    - X
+    - Y
+    - Z
+    - SPACE
+    - DELETE
+    - NOTHING
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+audio:
+  model_path: models/emotion_svm.joblib
+  sample_rate: 22050
+  duration_seconds: 3.0
+  emotions:
+    - neutral
+    - calm
+    - happy
+    - sad
+    - angry
+    - fearful
+    - disgust
+smoothing:
+  buffer_size: 7
+  cooldown_seconds: 1.5
+  confidence_threshold: 0.75
+nlp:
+  word_limit: 50
