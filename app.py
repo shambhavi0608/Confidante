@@ -145,6 +145,8 @@ def inject_dark_theme() -> None:
         .ss-star { position:absolute; color:#F0F0FF; opacity:.75; font-size:1.35rem; animation:pulse 2s infinite; }
         .ss-star.a { top:8%; left:18%; } .ss-star.b { top:20%; right:8%; animation-delay:.4s; } .ss-star.c { bottom:14%; left:10%; animation-delay:.8s; }
         .ss-footer { display:flex; justify-content:center; gap:28px; color:var(--muted); font-size:.78rem; letter-spacing:.1em; margin:34px 0 8px; }
+        /* Make debug messages visible */
+        .stMarkdown { color: #00FF00 !important; background: #000000 !important; padding: 10px; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -174,16 +176,21 @@ def load_page_renderer(module_name: str) -> Callable[[Dict[str, Any]], None]:
 def main() -> None:
     """Run the Streamlit application."""
     st.set_page_config(page_title="SignSpeak AI", page_icon="🔴", layout="wide", initial_sidebar_state="expanded")
-    st.write("DEBUG: Main function called")
     inject_dark_theme()
-    st.write("DEBUG: Theme injected")
+    
+    # Test simple rendering first
+    st.markdown("<h1 style='color: white; background: black; padding: 20px;'>TEST: App is running</h1>", unsafe_allow_html=True)
+    st.write("DEBUG: Main function called")
+    
     try:
         config = load_config()
-        st.write(f"DEBUG: Config loaded: {config}")
+        st.write(f"DEBUG: Config loaded successfully")
         initialize_session(config)
         st.write("DEBUG: Session initialized")
     except Exception as exc:
         st.error(f"Startup failed: {exc}")
+        import traceback
+        st.error(traceback.format_exc())
         return
     st.sidebar.markdown(
         """
@@ -219,6 +226,9 @@ def main() -> None:
         st.error(f"Page failed: {exc}")
         import traceback
         st.error(traceback.format_exc())
+    
+    # Test rendering
+    st.markdown("<h1 style='color: white; background: black;'>TEST: Main content area</h1>", unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
