@@ -10,6 +10,7 @@ from .helpers import (
     load_conversation_log,
     format_confidence_display
 )
+
 from .session import (
     add_gesture_token,
     add_history_entry,
@@ -20,6 +21,7 @@ from .session import (
     sync_sentence_from_builder,
 )
 from .smoothing import MajorityVoteSmoother
+
 
 __all__ = [
     'resize_frame',
@@ -36,4 +38,6 @@ __all__ = [
     'initialize_session',
     'sync_sentence_from_builder',
     'MajorityVoteSmoother',
+    'format_confidence_display'
+
 ]
