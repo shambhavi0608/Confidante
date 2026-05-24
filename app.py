@@ -1,4 +1,4 @@
-"""Streamlit entry point for the Sign Speech Converter project."""
+"""Streamlit entry point for the SignSpeak AI interface."""
 
 from __future__ import annotations
 
@@ -25,57 +25,48 @@ def load_config(path: Path = CONFIG_PATH) -> Dict[str, Any]:
         raise RuntimeError(f"Configuration file not found: {path}") from exc
     except yaml.YAMLError as exc:
         raise RuntimeError(f"Configuration file is invalid: {exc}") from exc
-    required_sections = {"app", "gesture", "audio", "smoothing", "nlp"}
-    missing = required_sections.difference(config)
+    missing = {"app", "gesture", "audio", "smoothing", "nlp"}.difference(config)
     if missing:
         raise RuntimeError(f"Configuration is missing sections: {', '.join(sorted(missing))}")
     return config
 
 
 def inject_dark_theme() -> None:
-    """Inject the premium smart-home dashboard visual system."""
+    """Inject the full SignSpeak AI CSS design system."""
     st.markdown(
         """
         <style>
+        header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
         :root {
-            --ssc-bg-a: #1A1015;
-            --ssc-bg-b: #0D0A0E;
-            --ssc-sidebar: #110D14;
-            --ssc-glass: rgba(255, 255, 255, 0.05);
-            --ssc-border: rgba(255, 255, 255, 0.10);
-            --ssc-text: #F5F0FF;
-            --ssc-muted: rgba(245, 240, 255, 0.68);
-            --ssc-amber: #E8893C;
-            --ssc-purple: #9B6DFF;
-            --ssc-green: #39D98A;
-            --ssc-blue: #5AA7FF;
-            --ssc-red: #FF5E6C;
-            --ssc-gray: #8B8494;
-            --ssc-radius: 24px;
+            --bg: #0A0A0F;
+            --card: #12121A;
+            --line: #2A2A3A;
+            --side: #0D0D15;
+            --amber: #E8893C;
+            --amber2: #F5A623;
+            --violet: #6B7FD4;
+            --text: #F0F0FF;
+            --muted: #8888AA;
+            --green: #22C55E;
+            --blue: #3B82F6;
+            --purple: #8B5CF6;
+            --red: #EF4444;
+            --pink: #EC4899;
+            --cyan: #06B6D4;
         }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        @keyframes glow {
-            0%, 100% { opacity: 0.64; box-shadow: 0 0 20px rgba(232, 137, 60, 0.22); }
-            50% { opacity: 1; box-shadow: 0 0 40px rgba(155, 109, 255, 0.40); }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fillBar {
-            from { transform: scaleX(0); }
-            to { transform: scaleX(1); }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%,100% { transform: scale(1); opacity: .8; } 50% { transform: scale(1.05); opacity: 1; } }
+        @keyframes bars { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+        @keyframes blink { 0%,45% { opacity: 1; } 46%,100% { opacity: 0; } }
+        @keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,.42); } 80% { box-shadow: 0 0 0 22px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
         .stApp {
             background:
-                radial-gradient(circle at 18% 8%, rgba(232, 137, 60, 0.22), transparent 30%),
-                radial-gradient(circle at 86% 18%, rgba(155, 109, 255, 0.22), transparent 32%),
-                radial-gradient(circle at 50% 100%, rgba(232, 137, 60, 0.10), transparent 42%),
-                linear-gradient(145deg, var(--ssc-bg-a), var(--ssc-bg-b) 64%);
-            color: var(--ssc-text);
+                radial-gradient(circle at 15% 5%, rgba(232,137,60,.11), transparent 25%),
+                radial-gradient(circle at 90% 15%, rgba(107,127,212,.13), transparent 28%),
+                linear-gradient(135deg, #0A0A0F 0%, #0A0A0F 55%, #11111A 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
         .stApp::before {
             content: "";
@@ -83,336 +74,77 @@ def inject_dark_theme() -> None:
             inset: 0;
             pointer-events: none;
             background-image:
-                linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
-            background-size: 42px 42px;
-            mask-image: radial-gradient(circle at center, black, transparent 78%);
+                radial-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+                linear-gradient(rgba(255,255,255,.012), rgba(255,255,255,0));
+            background-size: 22px 22px, 100% 100%;
+            opacity: .45;
         }
-        .block-container {
-            animation: fadeIn 520ms ease-out both;
-            max-width: 1260px;
-            padding-top: 2.2rem;
-            padding-bottom: 3rem;
-        }
-        [data-testid="stSidebar"] {
-            background:
-                radial-gradient(circle at top, rgba(232, 137, 60, 0.14), transparent 34%),
-                var(--ssc-sidebar);
-            border-right: 1px solid rgba(232, 137, 60, 0.16);
-            box-shadow: 16px 0 54px rgba(0, 0, 0, 0.30);
-        }
-        [data-testid="stSidebar"] > div {
-            padding-top: 1.5rem;
-        }
+        .block-container { max-width: 1380px; padding: 30px 34px 42px; animation: fadeIn .45s ease both; }
+        [data-testid="stSidebar"] { background: var(--side) !important; border-right: 1px solid #191925; box-shadow: 18px 0 42px rgba(0,0,0,.34); }
+        [data-testid="stSidebar"] * { color: var(--text) !important; }
         [data-testid="stSidebar"] [role="radiogroup"] label {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            margin-bottom: 0.55rem;
-            padding: 0.68rem 0.85rem;
-            transition: all 180ms ease;
+            min-height: 48px; padding: 0 16px; margin: 8px 0; border-radius: 16px;
+            background: transparent; border: 1px solid transparent; transition: all .18s ease;
         }
+        [data-testid="stSidebar"] [role="radiogroup"] input { display: none !important; }
         [data-testid="stSidebar"] [role="radiogroup"] label:hover {
-            background: rgba(232, 137, 60, 0.12);
-            border-color: rgba(232, 137, 60, 0.46);
-            box-shadow: 0 0 24px rgba(232, 137, 60, 0.16);
-            transform: translateX(2px);
+            background: rgba(232,137,60,.09); border-color: rgba(232,137,60,.22); transform: translateX(2px);
         }
         [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
-            background: linear-gradient(135deg, rgba(232, 137, 60, 0.26), rgba(155, 109, 255, 0.14));
-            border-color: rgba(232, 137, 60, 0.64);
-            box-shadow: 0 0 30px rgba(232, 137, 60, 0.22);
+            background: linear-gradient(90deg, rgba(232,137,60,.24), rgba(245,166,35,.08));
+            border-color: rgba(232,137,60,.52);
+            box-shadow: inset 3px 0 0 var(--amber), 0 0 22px rgba(232,137,60,.12);
         }
-        h1, h2, h3 {
-            background: linear-gradient(90deg, var(--ssc-amber), var(--ssc-purple));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent !important;
-            letter-spacing: 0;
-        }
-        h1 {
-            font-size: clamp(2.25rem, 5vw, 4.25rem) !important;
-            font-weight: 950 !important;
-        }
-        p, label, span, div {
-            color: inherit;
-        }
-        [data-testid="stMetric"], .stMetric {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            border-radius: 20px;
-            padding: 1rem;
-            box-shadow: 0 0 26px rgba(155, 109, 255, 0.12);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+        h1, h2, h3 { color: var(--text) !important; letter-spacing: 0 !important; }
+        h1 { font-size: clamp(2rem, 4vw, 3.25rem) !important; font-weight: 900 !important; }
+        .stTextInput input, .stSelectbox div[data-baseweb="select"] > div {
+            background: #0D0D15 !important; border: 1px solid var(--line) !important; border-radius: 16px !important; color: var(--text) !important;
         }
         .stButton > button, .stDownloadButton > button {
-            background: linear-gradient(135deg, var(--ssc-amber), var(--ssc-purple));
-            border: 0;
-            border-radius: 999px;
-            color: white;
-            font-weight: 850;
-            letter-spacing: 0;
-            min-height: 3rem;
-            box-shadow: 0 0 26px rgba(232, 137, 60, 0.28), 0 0 42px rgba(155, 109, 255, 0.18);
-            transition: transform 170ms ease, box-shadow 170ms ease, filter 170ms ease;
+            border: 0; border-radius: 999px; color: #16100B; font-weight: 900; min-height: 46px;
+            background: linear-gradient(135deg, var(--amber), var(--amber2));
+            box-shadow: 0 10px 28px rgba(232,137,60,.24); transition: all .18s ease;
         }
-        .stButton > button:hover, .stDownloadButton > button:hover {
-            border: 0;
-            color: white;
-            filter: brightness(1.08);
-            transform: translateY(-1px);
-            box-shadow: 0 0 36px rgba(232, 137, 60, 0.42), 0 0 52px rgba(155, 109, 255, 0.26);
+        .stButton > button:hover, .stDownloadButton > button:hover { transform: translateY(-2px); filter: brightness(1.05); color: #16100B; }
+        .stTabs [data-baseweb="tab-list"] { gap: 10px; border-bottom: 1px solid var(--line); }
+        .stTabs [data-baseweb="tab"] { color: var(--muted); border-radius: 16px 16px 0 0; }
+        .stTabs [aria-selected="true"] { color: var(--text) !important; background: rgba(232,137,60,.10); }
+        div[data-testid="stSlider"] [role="slider"] { background: linear-gradient(135deg, var(--amber), var(--amber2)); box-shadow: 0 0 18px rgba(232,137,60,.35); }
+        .ss-card {
+            background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px;
+            box-shadow: 0 18px 44px rgba(0,0,0,.28); transition: all .18s ease; animation: fadeIn .45s ease both;
         }
-        .stButton > button[kind="primary"] {
-            animation: pulse 2.6s ease-in-out infinite;
-            font-size: 1.08rem;
-            min-height: 3.65rem;
-        }
-        .stAlert {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.10);
-            border-radius: 20px;
-            color: var(--ssc-text);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-        [data-testid="stDataFrame"] {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            border-radius: 20px;
-            box-shadow: 0 0 30px rgba(155, 109, 255, 0.10);
-            overflow: hidden;
-        }
-        [data-testid="stDataFrame"] [role="row"]:hover {
-            background: rgba(232, 137, 60, 0.10) !important;
-        }
-        .ssc-card {
-            position: relative;
-            overflow: hidden;
-            background:
-                linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035)),
-                rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--ssc-border);
-            border-radius: var(--ssc-radius);
-            padding: 1.25rem;
-            box-shadow: 0 18px 56px rgba(0, 0, 0, 0.30), 0 0 30px rgba(232, 137, 60, 0.12);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            animation: fadeIn 520ms ease-out both;
-        }
-        .ssc-card::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(circle at 20% 0%, rgba(232, 137, 60, 0.20), transparent 28%),
-                radial-gradient(circle at 100% 20%, rgba(155, 109, 255, 0.18), transparent 30%);
-            opacity: 0.72;
-        }
-        .ssc-card > * {
-            position: relative;
-            z-index: 1;
-        }
-        .ssc-card-label {
-            color: var(--ssc-muted);
-            font-size: 0.82rem;
-            font-weight: 800;
-            letter-spacing: 0.10em;
-            margin-bottom: 0.55rem;
-            text-transform: uppercase;
-        }
-        .ssc-muted { color: var(--ssc-muted); }
-        .ssc-stat-grid {
-            display: grid;
-            gap: 0.85rem;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .ssc-stat {
-            background: rgba(255, 255, 255, 0.045);
-            border: 1px solid var(--ssc-border);
-            border-radius: 20px;
-            padding: 0.85rem;
-        }
-        .ssc-stat-value {
-            color: var(--ssc-text);
-            font-size: 1.38rem;
-            font-weight: 900;
-        }
-        .ssc-section-title {
-            align-items: center;
-            color: var(--ssc-text);
-            display: flex;
-            font-size: 1.2rem;
-            font-weight: 900;
-            gap: 0.8rem;
-            margin: 1.5rem 0 0.85rem;
-        }
-        .ssc-section-title::after {
-            background: linear-gradient(90deg, rgba(232, 137, 60, 0.68), transparent);
-            content: "";
-            flex: 1;
-            height: 1px;
-        }
-        .ssc-gesture-dial-card {
-            align-items: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            min-height: 460px;
-            text-align: center;
-        }
-        .ssc-gesture-dial {
-            align-items: center;
-            animation: glow 3.2s ease-in-out infinite;
-            aspect-ratio: 1;
-            background:
-                radial-gradient(circle at 50% 48%, rgba(245, 240, 255, 0.12), transparent 34%),
-                conic-gradient(from 150deg, rgba(232, 137, 60, 0.98), rgba(155, 109, 255, 0.78), rgba(232, 137, 60, 0.98));
-            border-radius: 50%;
-            box-shadow: 0 0 46px rgba(232, 137, 60, 0.48), inset 0 0 44px rgba(13, 10, 14, 0.84);
-            display: grid;
-            place-items: center;
-            width: min(330px, 76vw);
-        }
-        .ssc-gesture-dial-inner {
-            align-items: center;
-            aspect-ratio: 1;
-            background: radial-gradient(circle, rgba(26, 16, 21, 0.92), rgba(13, 10, 14, 0.98));
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            width: 82%;
-        }
-        .ssc-gesture-value {
-            color: var(--ssc-text);
-            font-size: clamp(4.25rem, 14vw, 8rem);
-            font-weight: 950;
-            letter-spacing: 0;
-            line-height: 0.95;
-            text-shadow: 0 0 34px rgba(232, 137, 60, 0.74);
-        }
-        .ssc-confidence-text {
-            color: var(--ssc-amber);
-            font-size: 1.12rem;
-            font-weight: 850;
-            margin-top: 0.8rem;
-        }
-        .ssc-confidence-list {
-            display: grid;
-            gap: 0.9rem;
-            margin-top: 1rem;
-        }
-        .ssc-confidence-row {
-            align-items: center;
-            display: grid;
-            gap: 0.8rem;
-            grid-template-columns: 4.5rem 1fr 3.5rem;
-        }
-        .ssc-confidence-track {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 999px;
-            height: 0.8rem;
-            overflow: hidden;
-        }
-        .ssc-confidence-fill {
-            animation: fillBar 820ms ease-out both;
-            background: linear-gradient(90deg, var(--ssc-amber), var(--ssc-purple));
-            border-radius: inherit;
-            box-shadow: 0 0 18px rgba(232, 137, 60, 0.38);
-            height: 100%;
-            transform-origin: left;
-        }
-        .ssc-sentence {
-            color: var(--ssc-text);
-            font-size: 1.28rem;
-            line-height: 1.6;
-            min-height: 6rem;
-            overflow-wrap: anywhere;
-            text-shadow: 0 0 20px rgba(245, 240, 255, 0.16);
-        }
-        .ssc-badge {
-            align-items: center;
-            border-radius: 999px;
-            color: white;
-            display: inline-flex;
-            font-weight: 850;
-            justify-content: center;
-            letter-spacing: 0;
-            min-height: 2rem;
-            padding: 0.25rem 0.85rem;
-            box-shadow: 0 0 20px rgba(155, 109, 255, 0.22);
-        }
-        .ssc-badge-happy { background: var(--ssc-green); }
-        .ssc-badge-sad { background: var(--ssc-blue); }
-        .ssc-badge-angry { background: var(--ssc-red); }
-        .ssc-badge-neutral { background: var(--ssc-gray); }
-        .ssc-badge-calm,
-        .ssc-badge-fearful,
-        .ssc-badge-disgust { background: var(--ssc-purple); }
-        .ssc-emotion-orb {
-            aspect-ratio: 1;
-            background: radial-gradient(circle, rgba(255,255,255,0.10), rgba(255,255,255,0.03) 58%, rgba(13,10,14,0.70));
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 50%;
-            display: grid;
-            margin: 0 auto;
-            place-items: center;
-            text-align: center;
-            width: min(290px, 72vw);
-        }
-        .ssc-emotion-happy { animation: pulse 3s ease-in-out infinite; box-shadow: 0 0 48px rgba(57, 217, 138, 0.45), inset 0 0 42px rgba(57, 217, 138, 0.12); }
-        .ssc-emotion-sad { animation: pulse 3s ease-in-out infinite; box-shadow: 0 0 48px rgba(90, 167, 255, 0.42), inset 0 0 42px rgba(90, 167, 255, 0.12); }
-        .ssc-emotion-angry { animation: pulse 3s ease-in-out infinite; box-shadow: 0 0 48px rgba(255, 94, 108, 0.45), inset 0 0 42px rgba(255, 94, 108, 0.12); }
-        .ssc-emotion-neutral { animation: pulse 3s ease-in-out infinite; box-shadow: 0 0 48px rgba(139, 132, 148, 0.34), inset 0 0 42px rgba(139, 132, 148, 0.12); }
-        .ssc-emotion-calm,
-        .ssc-emotion-fearful,
-        .ssc-emotion-disgust { animation: pulse 3s ease-in-out infinite; box-shadow: 0 0 48px rgba(155, 109, 255, 0.45), inset 0 0 42px rgba(155, 109, 255, 0.12); }
-        .ssc-history-grid {
-            display: grid;
-            gap: 1rem;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            margin-top: 1rem;
-        }
-        .ssc-history-card { min-height: 180px; }
-        div[data-testid="stSlider"] [data-baseweb="slider"] > div {
-            background: rgba(255, 255, 255, 0.09);
-        }
-        div[data-testid="stSlider"] [role="slider"] {
-            background: linear-gradient(135deg, var(--ssc-amber), var(--ssc-purple));
-            box-shadow: 0 0 18px rgba(232, 137, 60, 0.38);
-        }
-        div[data-testid="stSlider"] [data-baseweb="slider"] div {
-            border-radius: 999px;
-        }
-        [data-testid="stToggle"] {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            border-radius: 20px;
-            padding: 0.7rem 0.9rem;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-        [data-testid="stAudioInput"] {
-            border: 1px solid rgba(255, 94, 108, 0.28);
-            border-radius: 24px;
-            padding: 0.75rem;
-            box-shadow: 0 0 28px rgba(255, 94, 108, 0.14);
-        }
-        [data-testid="stAudioInput"] button {
-            animation: pulse 1.9s ease-in-out infinite;
-            box-shadow: 0 0 24px rgba(255, 94, 108, 0.26);
-        }
-        @media (max-width: 700px) {
-            .block-container { padding-left: 1rem; padding-right: 1rem; }
-            .ssc-stat-grid { grid-template-columns: 1fr; }
-            .ssc-gesture-dial-card { min-height: 360px; }
-            .ssc-confidence-row { grid-template-columns: 3.5rem 1fr 3rem; }
-        }
+        .ss-card:hover { transform: translateY(-2px); border-color: rgba(232,137,60,.35); }
+        .ss-label { color: var(--muted); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; }
+        .ss-title { color: var(--text); font-weight: 900; font-size: 1.4rem; line-height: 1.1; }
+        .ss-muted { color: var(--muted); }
+        .ss-logo { padding: 10px 4px 20px; }
+        .ss-logo-main { font-size: 1.72rem; font-weight: 950; color: var(--text); }
+        .ss-logo-sub { color: var(--muted); font-size: .85rem; margin-top: 3px; }
+        .ss-profile { display:flex; align-items:center; gap:12px; margin-top: 18px; padding: 14px; border:1px solid var(--line); border-radius:16px; background:#101018; }
+        .ss-avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,var(--amber),var(--violet)); display:grid; place-items:center; font-weight:900; color:white; }
+        .ss-dot { width:10px; height:10px; border-radius:50%; display:inline-block; background:var(--amber); box-shadow:0 0 14px var(--amber); }
+        .ss-gesture-card { min-height: 390px; display:grid; place-items:center; text-align:center; box-shadow:0 0 36px rgba(232,137,60,.18); }
+        .ss-gesture-word { font-size: clamp(3.4rem, 9vw, 7rem); color: var(--amber); font-weight: 950; text-shadow:0 0 30px rgba(232,137,60,.62); animation:pulse 2.4s ease infinite; }
+        .ss-wave { height:42px; display:flex; gap:6px; align-items:end; justify-content:center; margin-top:24px; }
+        .ss-wave span { width:7px; height:26px; border-radius:999px; background:linear-gradient(var(--amber2), var(--amber)); animation:bars 1.1s ease-in-out infinite; transform-origin:bottom; }
+        .ss-wave span:nth-child(2n) { animation-delay:.15s; height:34px; } .ss-wave span:nth-child(3n) { animation-delay:.3s; height:18px; }
+        .ss-badge { display:inline-flex; align-items:center; padding:7px 12px; border-radius:999px; font-weight:850; font-size:.82rem; }
+        .ss-badge-amber { color:#180F08; background:linear-gradient(135deg,var(--amber),var(--amber2)); }
+        .ss-badge-green { color:white; background:#22C55E; } .ss-badge-blue { color:white; background:#3B82F6; } .ss-badge-purple { color:white; background:#8B5CF6; }
+        .ss-transcript { min-height:92px; font-size:1.35rem; line-height:1.45; color:var(--text); border:1px solid var(--line); border-radius:16px; background:#0D0D15; padding:18px; }
+        .ss-cursor { display:inline-block; width:2px; height:1.25em; background:var(--amber); margin-left:4px; vertical-align:-.2em; animation:blink 1s step-end infinite; }
+        .ss-progress-row { margin:18px 0; }
+        .ss-progress-top { display:flex; justify-content:space-between; color:var(--text); font-weight:800; margin-bottom:8px; }
+        .ss-track { height:10px; background:#20202C; border-radius:999px; overflow:hidden; border:1px solid #2A2A3A; }
+        .ss-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--amber),var(--amber2)); transform-origin:left; animation:fillBar .8s ease both; }
+        .ss-history-card { display:grid; grid-template-columns:1fr auto; gap:18px; border-bottom:1px solid #242433; padding-bottom:18px; }
+        .ss-quote { color:var(--text); font-size:1.45rem; line-height:1.35; font-weight:750; margin:18px 0; }
+        .ss-record { width:76px; height:76px; border-radius:50%; border:0; display:grid; place-items:center; margin:18px auto 8px; background:#EF4444; color:white; font-size:1.9rem; animation:ring 1.7s infinite; }
+        .ss-orb { width:min(360px,70vw); aspect-ratio:1; border-radius:50%; margin:0 auto; display:grid; place-items:center; position:relative; background:radial-gradient(circle,#202036,#101018 64%); border:1px solid #31314A; box-shadow:0 0 70px rgba(107,127,212,.28); }
+        .ss-star { position:absolute; color:#F0F0FF; opacity:.75; font-size:1.35rem; animation:pulse 2s infinite; }
+        .ss-star.a { top:8%; left:18%; } .ss-star.b { top:20%; right:8%; animation-delay:.4s; } .ss-star.c { bottom:14%; left:10%; animation-delay:.8s; }
+        .ss-footer { display:flex; justify-content:center; gap:28px; color:var(--muted); font-size:.78rem; letter-spacing:.1em; margin:34px 0 8px; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -422,10 +154,10 @@ def inject_dark_theme() -> None:
 def get_pages() -> Dict[str, str]:
     """Return display labels mapped to page module names."""
     return {
-        "● Live Detection": "pages.live_detection",
-        "◆ Audio Emotion": "pages.audio_emotion",
-        "▣ History": "pages.history",
-        "⚙ Settings": "pages.settings",
+        "🔴 Live Translator": "pages.live_detection",
+        "📋 Translation History": "pages.history",
+        "⚙️ Emotion Settings": "pages.settings",
+        "📊 System Status": "pages.audio_emotion",
     }
 
 
@@ -433,8 +165,7 @@ def load_page_renderer(module_name: str) -> Callable[[Dict[str, Any]], None]:
     """Import a page module and return its render function."""
     try:
         module = importlib.import_module(module_name)
-        renderer = getattr(module, "render_page")
-        return renderer
+        return getattr(module, "render_page")
     except Exception as exc:
         LOGGER.exception("Could not load page %s: %s", module_name, exc)
         raise RuntimeError(f"Could not load page {module_name}: {exc}") from exc
@@ -442,12 +173,7 @@ def load_page_renderer(module_name: str) -> Callable[[Dict[str, Any]], None]:
 
 def main() -> None:
     """Run the Streamlit application."""
-    st.set_page_config(
-        page_title="Sign Speech Converter",
-        page_icon="SSC",
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
+    st.set_page_config(page_title="SignSpeak AI", page_icon="🔴", layout="wide", initial_sidebar_state="expanded")
     inject_dark_theme()
     try:
         config = load_config()
@@ -456,37 +182,31 @@ def main() -> None:
         st.error(f"Startup failed: {exc}")
         return
     st.sidebar.markdown(
-        f"""
-        <div class="ssc-card">
-            <div class="ssc-card-label">Smart console</div>
-            <div style="font-size:1.35rem;font-weight:900;color:#F5F0FF;">{config["app"]["name"]}</div>
+        """
+        <div class="ss-logo">
+            <div class="ss-logo-main">SignSpeak AI</div>
+            <div class="ss-logo-sub">Premium Sign-to-Speech</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
     pages = get_pages()
     selected_page = st.sidebar.radio("Navigation", list(pages.keys()), label_visibility="collapsed")
+    st.sidebar.button("Start Session", use_container_width=True, type="primary")
     st.sidebar.markdown(
-        f"""
-        <div class="ssc-card" style="margin-top:1rem;">
-            <div class="ssc-card-label">Session</div>
-            <div class="ssc-stat-grid">
-                <div class="ssc-stat">
-                    <div class="ssc-muted">Emotion</div>
-                    <div class="ssc-stat-value">{st.session_state.emotion.title()}</div>
-                </div>
-                <div class="ssc-stat">
-                    <div class="ssc-muted">Language</div>
-                    <div class="ssc-stat-value">{st.session_state.language.upper()}</div>
-                </div>
+        """
+        <div class="ss-profile">
+            <div class="ss-avatar">SA</div>
+            <div>
+                <div style="font-weight:900;">Alex Morgan</div>
+                <div class="ss-muted" style="font-size:.82rem;">Pro workspace</div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
     try:
-        renderer = load_page_renderer(pages[selected_page])
-        renderer(config)
+        load_page_renderer(pages[selected_page])(config)
     except Exception as exc:
         st.error(f"Page failed: {exc}")
 

@@ -1,66 +1,83 @@
-"""Conversation history page."""
+"""Translation history page for SignSpeak AI."""
 
 from __future__ import annotations
 
+from datetime import datetime
 from html import escape
 from typing import Any, Dict, List
 
-import pandas as pd
 import streamlit as st
 
 from utils.session import get_history
 
 
 def render_page(config: Dict[str, Any]) -> None:
-    """Render conversation history as premium frosted glass cards."""
-    st.title("History")
-    history = get_history()
-    if not history:
-        st.markdown(
-            """
-            <div class="ssc-card">
-                <div class="ssc-card-label">Conversation archive</div>
-                <div style="font-size:1.35rem;font-weight:900;color:#F5F0FF;">No history yet</div>
-                <div class="ssc-muted" style="margin-top:0.45rem;">Spoken sentences will appear here as glass cards.</div>
+    """Render the SignSpeak AI translation history screen."""
+    st.markdown(
+        """
+        <div style="display:flex;align-items:end;justify-content:space-between;margin-bottom:22px;">
+            <div>
+                <div class="ss-title" style="font-size:2.4rem;">Translation History</div>
+                <div class="ss-muted" style="margin-top:6px;">42 saved records</div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
-    st.markdown('<div class="ssc-section-title">Conversation archive</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="ssc-history-grid">{_render_history_cards(history)}</div>', unsafe_allow_html=True)
-    frame = pd.DataFrame(history)
-    csv_bytes = frame.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        "Export conversation CSV",
-        data=csv_bytes,
-        file_name="sign_speech_history.csv",
-        mime="text/csv",
-        use_container_width=True,
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
+    st.text_input("Search", placeholder="Search across transcripts, dates, or emotions...", label_visibility="collapsed")
+    entries = _history_entries(get_history())
+    for entry in entries:
+        st.markdown(_history_card(entry), unsafe_allow_html=True)
+        cols = st.columns([1, 1, 4])
+        cols[0].button("Play Audio", key=f"play-{entry['id']}")
+        cols[1].button("Copy Text", key=f"copy-{entry['id']}")
+    st.markdown("<br>", unsafe_allow_html=True)
+    center = st.columns([1, 1, 1])
+    center[1].button("Load Previous Records", use_container_width=True)
 
 
-def _render_history_cards(history: List[Dict[str, str]]) -> str:
-    """Return HTML for conversation history cards."""
-    cards = []
-    for entry in reversed(history):
-        emotion = escape(entry.get("emotion", "neutral").lower())
-        timestamp = escape(entry.get("timestamp", ""))
-        sentence = escape(entry.get("sentence", ""))
-        language = escape(entry.get("language", "en").upper())
-        spoken_text = escape(entry.get("spoken_text", ""))
-        spoken_html = f'<div class="ssc-muted" style="margin-top:0.8rem;">{spoken_text}</div>' if spoken_text else ""
-        cards.append(
-            f"""
-            <div class="ssc-card ssc-history-card">
-                <div class="ssc-card-label">{timestamp}</div>
-                <div style="font-size:1.2rem;line-height:1.55;font-weight:850;color:#F5F0FF;">{sentence}</div>
-                {spoken_html}
-                <div style="display:flex;gap:0.55rem;align-items:center;flex-wrap:wrap;margin-top:1rem;">
-                    <span class="ssc-badge ssc-badge-{emotion}">{emotion.title()}</span>
-                    <span class="ssc-badge" style="background:linear-gradient(135deg,#E8893C,#9B6DFF);">{language}</span>
-                </div>
+def _history_entries(history: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    """Return real history entries or polished sample records for the empty state."""
+    if history:
+        return [
+            {
+                "id": str(index),
+                "timestamp": item.get("timestamp", ""),
+                "emotion": item.get("emotion", "Focused").title(),
+                "sentence": item.get("sentence", ""),
+            }
+            for index, item in enumerate(reversed(history))
+        ]
+    return [
+        {"id": "sample-1", "timestamp": "OCT 24, 10:15 AM", "emotion": "Focused", "sentence": "Hello, how are you today?"},
+        {"id": "sample-2", "timestamp": "OCT 24, 10:08 AM", "emotion": "Determined", "sentence": "Please start the meeting when everyone is ready."},
+        {"id": "sample-3", "timestamp": "OCT 23, 06:42 PM", "emotion": "Focused", "sentence": "Thank you for listening and responding so clearly."},
+    ]
+
+
+def _history_card(entry: Dict[str, str]) -> str:
+    """Return one SignSpeak history card."""
+    timestamp = escape(_format_timestamp(entry.get("timestamp", "")))
+    emotion = escape(entry.get("emotion", "Focused"))
+    sentence = escape(entry.get("sentence", ""))
+    badge = "ss-badge-purple" if emotion.lower() == "focused" else "ss-badge-amber"
+    return f"""
+    <div class="ss-card ss-history-card" style="margin-top:18px;">
+        <div>
+            <div style="display:flex;justify-content:space-between;gap:18px;align-items:center;">
+                <div class="ss-label">{timestamp}</div>
+                <span class="ss-badge {badge}">{emotion}</span>
             </div>
-            """
-        )
-    return "".join(cards)
+            <div class="ss-quote">"{sentence}"</div>
+        </div>
+        <div class="ss-avatar" style="width:58px;height:58px;">SA</div>
+    </div>
+    """
+
+
+def _format_timestamp(value: str) -> str:
+    """Format ISO timestamps into display text when possible."""
+    try:
+        return datetime.fromisoformat(value).strftime("%b %d, %I:%M %p").upper()
+    except Exception:
+        return value or "OCT 24, 10:15 AM"

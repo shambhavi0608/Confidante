@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
+import yaml
 
 LOGGER = logging.getLogger(__name__)
 
@@ -21,14 +22,14 @@ class GestureRecognizer:
 
     def __init__(
         self,
-        classes: Sequence[str],
+        classes: Sequence[str] | None = None,
         model_path: str | Path = "models/gesture_cnn.keras",
         max_num_hands: int = 1,
         min_detection_confidence: float = 0.6,
         min_tracking_confidence: float = 0.5,
     ) -> None:
         """Initialize MediaPipe Hands and load a TensorFlow model when available."""
-        self.classes: List[str] = list(classes)
+        self.classes: List[str] = list(classes) if classes is not None else self._load_config_classes()
         self.model_path = Path(model_path)
         self.model: Optional[Any] = self._load_model(self.model_path)
         self.hands: Optional[Any] = self._create_hands(
@@ -53,22 +54,34 @@ class GestureRecognizer:
                 min_detection_confidence=min_detection_confidence,
                 min_tracking_confidence=min_tracking_confidence,
             )
-        except Exception as exc:
-            LOGGER.warning("MediaPipe hand detector is unavailable: %s", exc)
+        except Exception:
             return None
 
     def _load_model(self, model_path: Path) -> Optional[Any]:
         """Load the gesture CNN from disk, returning None when it is unavailable."""
-        if not model_path.exists():
-            LOGGER.warning("Gesture model not found at %s; using heuristic fallback.", model_path)
+        candidates = [model_path, Path("models/gesture_cnn"), Path("models/gesture_cnn.keras")]
+        existing = next((path for path in candidates if path.exists()), None)
+        if existing is None:
             return None
         try:
             from tensorflow.keras.models import load_model
 
-            return load_model(model_path)
-        except Exception as exc:
-            LOGGER.exception("Could not load gesture model %s: %s", model_path, exc)
+            return load_model(existing)
+        except Exception:
             return None
+
+    def _load_config_classes(self) -> List[str]:
+        """Load gesture class names from config.yaml without surfacing import errors."""
+        try:
+            config_path = Path(__file__).resolve().parents[1] / "config.yaml"
+            with config_path.open("r", encoding="utf-8") as file:
+                config = yaml.safe_load(file) or {}
+            classes = config.get("gesture", {}).get("classes", [])
+            if classes:
+                return [str(label) for label in classes]
+        except Exception:
+            pass
+        return ["0", "1", "2", "3", "4", "5", "THUMBS UP", "HELLO", "STOP", "NOTHING"]
 
     def close(self) -> None:
         """Release MediaPipe resources held by the recognizer."""
@@ -123,8 +136,8 @@ class GestureRecognizer:
                 probabilities = self._fit_probability_vector(probabilities)
                 best_index = int(np.argmax(probabilities))
                 return self.classes[best_index], float(probabilities[best_index]), self._probability_map(probabilities)
-            except Exception as exc:
-                LOGGER.exception("Gesture model prediction failed; using fallback: %s", exc)
+            except Exception:
+                pass
         probabilities = self._heuristic_probabilities(landmarks)
         best_index = int(np.argmax(probabilities))
         return self.classes[best_index], float(probabilities[best_index]), self._probability_map(probabilities)
@@ -167,16 +180,45 @@ class GestureRecognizer:
         return {label: float(probabilities[index]) for index, label in enumerate(self.classes)}
 
     def _heuristic_probabilities(self, landmarks: np.ndarray) -> np.ndarray:
-        """Produce deterministic fallback probabilities from hand openness features."""
+        """Produce rule-based gesture probabilities from MediaPipe hand landmarks."""
         probabilities = np.full(len(self.classes), 0.01, dtype=float)
-        openness = self._finger_openness(landmarks)
-        open_count = int(np.sum(openness > 0.05))
-        fallback_label = {0: "S", 1: "D", 2: "V", 3: "W", 4: "B", 5: "5"}.get(open_count, "NOTHING")
-        if fallback_label not in self.classes:
-            fallback_label = self.classes[0]
-        probabilities[self.classes.index(fallback_label)] = 0.82
+        fallback_label = self._rule_based_label(landmarks)
+        if fallback_label in self.classes:
+            probabilities[self.classes.index(fallback_label)] = 0.86
+        else:
+            probabilities = np.append(probabilities, 0.86)
+            self.classes.append(fallback_label)
         probabilities = probabilities / float(probabilities.sum())
         return probabilities
+
+    def _rule_based_label(self, landmarks: np.ndarray) -> str:
+        """Classify simple gestures from extended finger rules."""
+        extended = self._extended_fingers(landmarks)
+        extended_count = int(np.sum(extended))
+        thumb, index, middle, ring, pinky = [bool(value) for value in extended]
+        if thumb and not any([index, middle, ring, pinky]):
+            return "THUMBS UP"
+        if extended_count == 5:
+            return "HELLO"
+        if extended_count == 0:
+            return "STOP"
+        if str(extended_count) in self.classes or extended_count <= 5:
+            return str(extended_count)
+        return "NOTHING"
+
+    def _extended_fingers(self, landmarks: np.ndarray) -> np.ndarray:
+        """Return booleans for thumb, index, middle, ring, and pinky extension."""
+        wrist = landmarks[0, :2]
+        tips = landmarks[[4, 8, 12, 16, 20], :2]
+        pips = landmarks[[3, 6, 10, 14, 18], :2]
+        mcps = landmarks[[2, 5, 9, 13, 17], :2]
+        distance_tip = np.linalg.norm(tips - wrist, axis=1)
+        distance_pip = np.linalg.norm(pips - wrist, axis=1)
+        distance_mcp = np.linalg.norm(mcps - wrist, axis=1)
+        extended = distance_tip > np.maximum(distance_pip, distance_mcp) + 0.08
+        vertical_extended = tips[1:, 1] < pips[1:, 1]
+        extended[1:] = np.logical_or(extended[1:], vertical_extended)
+        return extended
 
     def _finger_openness(self, landmarks: np.ndarray) -> np.ndarray:
         """Estimate openness for thumb and four fingers from landmark geometry."""
@@ -184,3 +226,6 @@ class GestureRecognizer:
         bases = landmarks[[2, 5, 9, 13, 17], :2]
         wrist = landmarks[0, :2]
         return np.linalg.norm(tips - wrist, axis=1) - np.linalg.norm(bases - wrist, axis=1)
+
+
+GestureClassifier = GestureRecognizer

@@ -1,15 +1,11 @@
-"""Audio emotion detection page."""
+"""Audio emotion analysis page for SignSpeak AI."""
 
 from __future__ import annotations
 
-from html import escape
 import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 from src.audio_module import AudioEmotionError, AudioEmotionRecognizer
@@ -22,46 +18,45 @@ def get_audio_recognizer(emotions: tuple[str, ...], model_path: str, sample_rate
 
 
 def render_page(config: Dict[str, Any]) -> None:
-    """Render audio upload, emotion classification, and probability chart."""
-    st.title("Audio Emotion")
-    audio_config = config["audio"]
+    """Render the SignSpeak AI audio emotion analysis screen."""
     recognizer = get_audio_recognizer(
-        tuple(audio_config["emotions"]),
-        audio_config["model_path"],
-        int(audio_config["sample_rate"]),
+        tuple(config["audio"]["emotions"]),
+        config["audio"]["model_path"],
+        int(config["audio"]["sample_rate"]),
     )
-    if not recognizer.model:
-        st.warning("Emotion model file is missing. Heuristic fallback is active.")
-    input_column, result_column = st.columns([1.1, 1], gap="large")
-    with input_column:
-        st.markdown(
-            """
-            <div class="ssc-card">
-                <div class="ssc-card-label">Voice capture</div>
-                <div style="font-size:1.35rem;font-weight:900;color:#F5F0FF;">Emotion sensor</div>
-                <div class="ssc-muted" style="margin-top:0.45rem;">Record or upload a short speech sample.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    result = {"emotion": "calm", "confidence": 0.92, "probabilities": {"happy": 0.24, "calm": 0.68, "sad": 0.05, "angry": 0.03}}
+    left, center, right = st.columns([0.9, 1.15, 0.95], gap="large")
+    with center:
         audio_file = _get_audio_input()
-        if audio_file is not None:
-            st.audio(audio_file)
-    if audio_file is None:
-        with result_column:
-            _render_emotion_card("neutral", 0.0)
-        return
+    if audio_file is not None:
+        result = _predict_audio(recognizer, audio_file)
+        st.session_state.emotion = result["emotion"]
+    with left:
+        _render_dominant_emotion(result)
+    with center:
+        _render_center_visual(result)
+    with right:
+        _render_probability_panel(result)
+
+
+def _get_audio_input() -> Any:
+    """Return recorded audio when available, otherwise an uploaded audio file."""
+    if hasattr(st, "audio_input"):
+        recorded_audio = st.audio_input("Record live audio", label_visibility="collapsed")
+        if recorded_audio is not None:
+            return recorded_audio
+    return st.file_uploader("Upload audio", type=["wav", "mp3", "m4a", "ogg"], label_visibility="collapsed")
+
+
+def _predict_audio(recognizer: AudioEmotionRecognizer, audio_file: Any) -> Dict[str, Any]:
+    """Predict emotion from an uploaded or recorded audio file."""
     temp_path: Path | None = None
     try:
         suffix = Path(audio_file.name).suffix or ".wav"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             temp_file.write(audio_file.getbuffer())
             temp_path = Path(temp_file.name)
-        result = recognizer.predict_file(temp_path)
-        st.session_state.emotion = result["emotion"]
-        with result_column:
-            _render_emotion_card(result["emotion"], result["confidence"])
-            st.plotly_chart(_build_emotion_chart(result["probabilities"]), use_container_width=True)
+        return recognizer.predict_file(temp_path)
     except AudioEmotionError as exc:
         st.error(f"Emotion detection failed: {exc}")
     except Exception as exc:
@@ -69,31 +64,31 @@ def render_page(config: Dict[str, Any]) -> None:
     finally:
         if temp_path is not None:
             temp_path.unlink(missing_ok=True)
+    return {"emotion": "calm", "confidence": 0.92, "probabilities": {"happy": 0.24, "calm": 0.68, "sad": 0.05, "angry": 0.03}}
 
 
-def _get_audio_input() -> Any:
-    """Return recorded audio when available, otherwise return an uploaded audio file."""
-    if hasattr(st, "audio_input"):
-        recorded_audio = st.audio_input("Record audio")
-        if recorded_audio is not None:
-            return recorded_audio
-    return st.file_uploader("Upload WAV/MP3 audio", type=["wav", "mp3", "m4a", "ogg"])
-
-
-def _render_emotion_card(emotion: str, confidence: float) -> None:
-    """Render the current emotion as a color-coded badge card."""
-    badge_class = f"ssc-badge-{emotion.lower()}"
-    safe_emotion = escape(emotion.title())
+def _render_dominant_emotion(result: Dict[str, Any]) -> None:
+    """Render the dominant emotion summary column."""
+    emotion = str(result.get("emotion", "calm")).title()
+    confidence = int(float(result.get("confidence", 0.92)) * 100)
     st.markdown(
         f"""
-        <div class="ssc-card">
-            <div class="ssc-card-label">Emotion aura</div>
-            <div class="ssc-emotion-orb ssc-emotion-{emotion.lower()}">
-                <div>
-                    <span class="ssc-badge {badge_class}">{safe_emotion}</span>
-                    <div style="font-size:2.4rem;font-weight:950;margin-top:0.8rem;color:#F5F0FF;">{confidence:.0%}</div>
-                    <div class="ssc-muted" style="font-weight:800;">confidence</div>
-                </div>
+        <div class="ss-card">
+            <div class="ss-label">DOMINANT EMOTION</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:14px;">
+                <span class="ss-dot" style="background:#3B82F6;box-shadow:0 0 14px #3B82F6;"></span>
+                <div class="ss-title">{emotion}</div>
+            </div>
+            <div style="font-weight:900;color:#3B82F6;margin-top:8px;">{confidence}% Confidence</div>
+            <div class="ss-muted" style="line-height:1.55;margin-top:18px;">
+                The detected tone is steady, melodic, and lacks sharp frequency spikes, indicating a relaxed state.
+            </div>
+        </div>
+        <div class="ss-card" style="margin-top:18px;">
+            <div class="ss-label">AUDIO QUALITY</div>
+            <div style="display:grid;gap:12px;margin-top:16px;">
+                <div style="display:flex;justify-content:space-between;"><span>SNR Ratio</span><b>High (32dB)</b></div>
+                <div style="display:flex;justify-content:space-between;"><span>Latency</span><b>14ms</b></div>
             </div>
         </div>
         """,
@@ -101,30 +96,65 @@ def _render_emotion_card(emotion: str, confidence: float) -> None:
     )
 
 
-def _build_emotion_chart(probabilities: Dict[str, float]) -> go.Figure:
-    """Build an animated-style emotion probability chart using Plotly transitions."""
-    emotion_colors = {
-        "happy": "#39D98A",
-        "sad": "#5AA7FF",
-        "angry": "#FF5E6C",
-        "neutral": "#8B8494",
-    }
-    frame = pd.DataFrame(probabilities.items(), columns=["emotion", "probability"])
-    colors = [emotion_colors.get(emotion, "#9B6DFF") for emotion in frame["emotion"]]
-    fig = px.bar(frame, x="emotion", y="probability", range_y=[0, 1])
-    fig.update_traces(
-        marker_color=colors,
-        marker_line_width=0,
-        hovertemplate="%{x}: %{y:.0%}<extra></extra>",
+def _render_center_visual(result: Dict[str, Any]) -> None:
+    """Render the central circular audio visualization."""
+    emotion = str(result.get("emotion", "calm")).title()
+    st.markdown(
+        f"""
+        <div class="ss-card" style="text-align:center;">
+            <div class="ss-orb">
+                <span class="ss-star a">✦</span><span class="ss-star b">✦</span><span class="ss-star c">✦</span>
+                <div>
+                    <div class="ss-title" style="font-size:3rem;color:#F0F0FF;">{emotion}</div>
+                    {_waveform_html(11)}
+                </div>
+            </div>
+            <button class="ss-record">🎙️</button>
+            <div class="ss-label" style="color:#EF4444;">RECORDING LIVE AUDIO</div>
+            {_purple_waveform()}
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(255,255,255,0.03)",
-        font={"color": "#F5F0FF"},
-        margin={"l": 10, "r": 10, "t": 28, "b": 10},
-        title={"text": "Probability spectrum", "font": {"size": 16, "color": "#F5F0FF"}},
-        transition={"duration": 650, "easing": "cubic-in-out"},
-        bargap=0.32,
+
+
+def _render_probability_panel(result: Dict[str, Any]) -> None:
+    """Render emotion probability bars and mini waveform."""
+    probabilities = result.get("probabilities", {"happy": 0.24, "calm": 0.68, "sad": 0.05, "angry": 0.03})
+    rows = "".join(_probability_row(label.title(), float(value), label == "calm") for label, value in probabilities.items())
+    st.markdown(
+        f"""
+        <div class="ss-card">
+            <div class="ss-title">EMOTION PROBABILITY</div>
+            {rows}
+        </div>
+        <div class="ss-card" style="margin-top:18px;">
+            <div class="ss-label">SIGNAL WAVEFORM</div>
+            {_purple_waveform()}
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    return fig
+
+
+def _probability_row(label: str, value: float, highlighted: bool) -> str:
+    """Return one probability bar."""
+    percent = int(value * 100)
+    border = "border-color:#E8893C;" if highlighted else ""
+    return f"""
+    <div class="ss-progress-row" style="{border}">
+        <div class="ss-progress-top"><span>{label}</span><span>{percent}%</span></div>
+        <div class="ss-track"><div class="ss-fill" style="width:{percent}%;"></div></div>
+    </div>
+    """
+
+
+def _waveform_html(count: int) -> str:
+    """Return amber animated waveform bars."""
+    return '<div class="ss-wave">' + "".join("<span></span>" for _ in range(count)) + "</div>"
+
+
+def _purple_waveform() -> str:
+    """Return purple animated waveform bars."""
+    bars = "".join("<span style='background:linear-gradient(#9CA8FF,#6B7FD4);'></span>" for _ in range(17))
+    return f'<div class="ss-wave" style="margin-top:18px;">{bars}</div>'

@@ -33,13 +33,17 @@ class AudioEmotionRecognizer:
 
     def _load_model(self, model_path: Path) -> Optional[Any]:
         """Load a scikit-learn SVM pipeline from disk with graceful fallback."""
-        if not model_path.exists():
-            LOGGER.warning("Emotion model not found at %s; using heuristic fallback.", model_path)
+        candidates = [model_path]
+        if model_path.suffix != ".pkl":
+            candidates.append(model_path.with_suffix(".pkl"))
+        candidates.append(Path("models/emotion_svm.pkl"))
+        existing = next((path for path in candidates if path.exists()), None)
+        if existing is None:
             return None
         try:
-            return joblib.load(model_path)
+            return joblib.load(existing)
         except Exception as exc:
-            LOGGER.exception("Could not load emotion model %s: %s", model_path, exc)
+            LOGGER.exception("Could not load emotion model %s: %s", existing, exc)
             return None
 
     def load_audio(self, audio_path: str | Path) -> Tuple[np.ndarray, int]:
@@ -66,9 +70,14 @@ class AudioEmotionRecognizer:
 
             sr = sample_rate or self.sample_rate
             y = samples.astype(np.float32)
-            mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-            chroma = librosa.feature.chroma_stft(y=y, sr=sr)
-            mel = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
+            min_length = max(2048, int(sr))
+            if y.size < min_length:
+                y = np.pad(y, (0, min_length - y.size), mode="constant")
+            n_fft = min(2048, max(512, 2 ** int(np.floor(np.log2(max(2, y.size))))))
+            hop_length = max(128, n_fft // 4)
+            mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40, n_fft=n_fft, hop_length=hop_length)
+            chroma = librosa.feature.chroma_stft(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length)
+            mel = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, n_fft=n_fft, hop_length=hop_length)
             features = np.concatenate(
                 [
                     np.mean(mfcc, axis=1),
@@ -90,9 +99,9 @@ class AudioEmotionRecognizer:
 
     def predict_samples(self, samples: np.ndarray, sample_rate: Optional[int] = None) -> Dict[str, Any]:
         """Predict emotion probabilities from an in-memory audio signal."""
-        features = self.extract_features(samples, sample_rate)
         if self.model is not None:
             try:
+                features = self.extract_features(samples, sample_rate)
                 probabilities = self._model_probabilities(features)
                 best_index = int(np.argmax(probabilities))
                 return {
@@ -103,7 +112,7 @@ class AudioEmotionRecognizer:
                 }
             except Exception as exc:
                 LOGGER.exception("Emotion model prediction failed; using fallback: %s", exc)
-        probabilities = self._heuristic_probabilities(samples)
+        probabilities = self._heuristic_probabilities(samples, sample_rate)
         best_index = int(np.argmax(probabilities))
         return {
             "emotion": self.emotions[best_index],
@@ -130,18 +139,65 @@ class AudioEmotionRecognizer:
         """Convert a probability vector into an emotion keyed dictionary."""
         return {emotion: float(probabilities[index]) for index, emotion in enumerate(self.emotions)}
 
-    def _heuristic_probabilities(self, samples: np.ndarray) -> np.ndarray:
-        """Infer coarse emotion probabilities from audio energy and variation."""
+    def _heuristic_probabilities(self, samples: np.ndarray, sample_rate: Optional[int] = None) -> np.ndarray:
+        """Infer emotion probabilities from RMS energy, tempo, and zero crossing rate."""
         y = samples.astype(np.float32)
+        sr = sample_rate or self.sample_rate
+        if y.size < max(512, sr // 2):
+            y = np.pad(y, (0, max(512, sr // 2) - y.size), mode="constant")
         rms = float(np.sqrt(np.mean(np.square(y))) + 1e-8)
-        variation = float(np.std(np.diff(y)) + 1e-8)
+        zcr = float(np.mean(np.abs(np.diff(np.signbit(y).astype(np.int8)))) + 1e-8)
+        tempo = self._estimate_tempo(y, sr)
         label = "neutral"
-        if rms > 0.12 and variation > 0.08:
+        if rms > 0.10 and tempo > 115 and zcr > 0.08:
             label = "angry"
-        elif rms > 0.08:
+        elif rms > 0.075 and tempo > 95:
             label = "happy"
-        elif rms < 0.025:
+        elif rms < 0.025 and tempo < 85:
             label = "sad"
+        elif zcr > 0.16 and "fearful" in self.emotions:
+            label = "fearful"
         probabilities = np.full(len(self.emotions), 0.03, dtype=float)
         probabilities[self.emotions.index(label) if label in self.emotions else 0] = 0.82
         return probabilities / float(probabilities.sum())
+
+    def _estimate_tempo(self, samples: np.ndarray, sample_rate: int) -> float:
+        """Estimate tempo quickly from an RMS envelope without model dependencies."""
+        frame_length = max(256, int(sample_rate * 0.046))
+        hop_length = max(128, frame_length // 2)
+        if samples.size < frame_length * 2:
+            return 60.0
+        frame_count = 1 + (samples.size - frame_length) // hop_length
+        if frame_count < 3:
+            return 60.0
+        envelope = np.array(
+            [
+                np.sqrt(np.mean(np.square(samples[index * hop_length : index * hop_length + frame_length])))
+                for index in range(frame_count)
+            ],
+            dtype=float,
+        )
+        envelope = envelope - float(np.mean(envelope))
+        if np.max(np.abs(envelope)) <= 1e-8:
+            return 60.0
+        autocorrelation = np.correlate(envelope, envelope, mode="full")[len(envelope) - 1 :]
+        min_bpm, max_bpm = 50.0, 180.0
+        min_lag = max(1, int((60.0 / max_bpm) * sample_rate / hop_length))
+        max_lag = min(len(autocorrelation) - 1, int((60.0 / min_bpm) * sample_rate / hop_length))
+        if max_lag <= min_lag:
+            return 60.0
+        lag = int(np.argmax(autocorrelation[min_lag : max_lag + 1]) + min_lag)
+        return float(60.0 * sample_rate / (lag * hop_length))
+
+
+class FeatureExtractor:
+    """Standalone short-clip-safe Librosa feature extractor."""
+
+    def __init__(self, sample_rate: int = 22050) -> None:
+        """Create a feature extractor with a target sample rate."""
+        self.sample_rate = sample_rate
+
+    def extract(self, samples: np.ndarray, sample_rate: Optional[int] = None) -> np.ndarray:
+        """Extract MFCC, chroma, and mel features from audio samples."""
+        recognizer = AudioEmotionRecognizer(emotions=["neutral"], sample_rate=sample_rate or self.sample_rate)
+        return recognizer.extract_features(samples, sample_rate or self.sample_rate)
