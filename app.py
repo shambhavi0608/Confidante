@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from pathlib import Path
 from typing import Any, Dict
 
@@ -34,6 +33,12 @@ def inject_dark_theme() -> None:
     st.markdown(
         """
         <style>
+        [data-testid="stSidebarNav"] { display: none !important; }
+        [data-testid="stSidebarNav"] * { display: none !important; }
+        section[data-testid="stSidebar"] ul { display: none !important; }
+        header[data-testid="stHeader"] { display: none !important; }
+        #MainMenu { display: none !important; }
+        footer { display: none !important; }
         header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
         section[data-testid="stSidebarNav"] { display: none !important; }
         [data-testid="stSidebarNav"] { display: none !important; }
@@ -201,19 +206,6 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     
-    nav_options = {
-        "🔴 Live Translator": "live_detection",
-        "📋 Translation History": "history",
-        "⚙️ Emotion Settings": "settings",
-        "📊 System Status": "audio_emotion",
-    }
-
-    selected = st.sidebar.selectbox(
-        "Navigation",
-        list(nav_options.keys()),
-        label_visibility="visible",
-        key="nav_select",
-    )
     st.sidebar.button("Start Session", use_container_width=True, type="primary")
     st.sidebar.markdown(
         """
@@ -227,27 +219,37 @@ def main() -> None:
         """,
         unsafe_allow_html=True,
     )
-    
+
+    nav_options = {
+        "🔴 Live Translator": "live_detection",
+        "📋 Translation History": "history",
+        "⚙️ Emotion Settings": "settings",
+        "📊 System Status": "audio_emotion",
+    }
+    selected = st.sidebar.radio("", list(nav_options.keys()), label_visibility="collapsed", key="main_nav")
     page_key = nav_options[selected]
-    
-    # Render selected page with clear routing
     try:
         if page_key == "live_detection":
             from pages.live_detection import render_page
+
             render_page(config)
         elif page_key == "history":
             from pages.history import render_page
+
             render_page(config)
         elif page_key == "settings":
             from pages.settings import render_page
+
             render_page(config)
         elif page_key == "audio_emotion":
             from pages.audio_emotion import render_page
+
             render_page(config)
-    except Exception as exc:
-        st.error(f"Page failed to load: {exc}")
+    except Exception as e:
+        st.error(f"Page error: {e}")
         import traceback
-        st.error(traceback.format_exc())
+
+        st.code(traceback.format_exc())
 
 
 if __name__ == "__main__":
