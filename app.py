@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import importlib
 import logging
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any, Dict
 
 import streamlit as st
 import yaml
@@ -36,6 +35,7 @@ def inject_dark_theme() -> None:
         """
         <style>
         header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
+        section[data-testid="stSidebarNav"] { display: none !important; }
         [data-testid="stSidebarNav"] { display: none !important; }
         section[data-testid="stSidebar"] > div > div > div > ul { display: none !important; }
         :root {
@@ -146,20 +146,35 @@ def inject_dark_theme() -> None:
         .ss-star { position:absolute; color:#F0F0FF; opacity:.75; font-size:1.35rem; animation:pulse 2s infinite; }
         .ss-star.a { top:8%; left:18%; } .ss-star.b { top:20%; right:8%; animation-delay:.4s; } .ss-star.c { bottom:14%; left:10%; animation-delay:.8s; }
         .ss-footer { display:flex; justify-content:center; gap:28px; color:var(--muted); font-size:.78rem; letter-spacing:.1em; margin:34px 0 8px; }
+        .stApp, .stApp * { opacity: 1 !important; }
+        .stSelectbox > div > div {
+            background: #1A1A28 !important;
+            border: 1px solid rgba(232,137,60,0.4) !important;
+            border-radius: 16px !important;
+            color: #F0F0FF !important;
+            padding: 8px 16px !important;
+        }
+        .stSelectbox > div > div > div { color: #F0F0FF !important; }
+        [data-baseweb="select"] { background: #1A1A28 !important; }
+        [data-baseweb="popover"] {
+            background: #12121A !important;
+            border: 1px solid #2A2A3A !important;
+            border-radius: 16px !important;
+        }
+        [data-baseweb="menu"] { background: #12121A !important; }
+        [data-baseweb="option"] {
+            background: #12121A !important;
+            color: #F0F0FF !important;
+            padding: 12px 16px !important;
+        }
+        [data-baseweb="option"]:hover {
+            background: rgba(232,137,60,0.15) !important;
+            color: #E8893C !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
-
-
-def get_pages() -> Dict[str, str]:
-    """Return display labels mapped to page module names."""
-    return {
-        "🔴 Live Translator": "pages.live_detection",
-        "📋 Translation History": "pages.history",
-        "⚙️ Emotion Settings": "pages.settings",
-        "📊 System Status": "pages.audio_emotion",
-    }
 
 
 def main() -> None:
@@ -186,8 +201,19 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     
-    pages = get_pages()
-    selected_page = st.sidebar.radio("Navigation", list(pages.keys()), label_visibility="collapsed")
+    nav_options = {
+        "🔴 Live Translator": "live_detection",
+        "📋 Translation History": "history",
+        "⚙️ Emotion Settings": "settings",
+        "📊 System Status": "audio_emotion",
+    }
+
+    selected = st.sidebar.selectbox(
+        "Navigation",
+        list(nav_options.keys()),
+        label_visibility="visible",
+        key="nav_select",
+    )
     st.sidebar.button("Start Session", use_container_width=True, type="primary")
     st.sidebar.markdown(
         """
@@ -202,29 +228,26 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     
-    # Render selected page with error handling
+    page_key = nav_options[selected]
+    
+    # Render selected page with clear routing
     try:
-        if "Live Translator" in selected_page:
+        if page_key == "live_detection":
             from pages.live_detection import render_page
             render_page(config)
-        elif "Translation History" in selected_page:
+        elif page_key == "history":
             from pages.history import render_page
             render_page(config)
-        elif "Emotion Settings" in selected_page:
+        elif page_key == "settings":
             from pages.settings import render_page
             render_page(config)
-        elif "System Status" in selected_page:
+        elif page_key == "audio_emotion":
             from pages.audio_emotion import render_page
             render_page(config)
     except Exception as exc:
         st.error(f"Page failed to load: {exc}")
         import traceback
         st.error(traceback.format_exc())
-        
-        # Show fallback content
-        st.markdown("### 🚨 Page Error")
-        st.write(f"The selected page '{selected_page}' encountered an error.")
-        st.write("Please check the error details above or try selecting a different page.")
 
 
 if __name__ == "__main__":
