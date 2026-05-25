@@ -1,9 +1,8 @@
-
-
 from __future__ import annotations
 
 import importlib
 import logging
+import time
 from pathlib import Path
 from typing import Any, Callable, Dict
 
@@ -37,6 +36,8 @@ def inject_dark_theme() -> None:
         """
         <style>
         header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
+        [data-testid="stSidebarNav"] { display: none !important; }
+        section[data-testid="stSidebar"] > div > div > div > ul { display: none !important; }
         :root {
             --bg: #0A0A0F;
             --card: #12121A;
@@ -145,8 +146,6 @@ def inject_dark_theme() -> None:
         .ss-star { position:absolute; color:#F0F0FF; opacity:.75; font-size:1.35rem; animation:pulse 2s infinite; }
         .ss-star.a { top:8%; left:18%; } .ss-star.b { top:20%; right:8%; animation-delay:.4s; } .ss-star.c { bottom:14%; left:10%; animation-delay:.8s; }
         .ss-footer { display:flex; justify-content:center; gap:28px; color:var(--muted); font-size:.78rem; letter-spacing:.1em; margin:34px 0 8px; }
-        /* Make debug messages visible */
-        .stMarkdown { color: #00FF00 !important; background: #000000 !important; padding: 10px; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -161,16 +160,6 @@ def get_pages() -> Dict[str, str]:
         "⚙️ Emotion Settings": "pages.settings",
         "📊 System Status": "pages.audio_emotion",
     }
-
-
-def load_page_renderer(module_name: str) -> Callable[[Dict[str, Any]], None]:
-    """Import a page module and return its render function."""
-    try:
-        module = importlib.import_module(module_name)
-        return getattr(module, "render_page")
-    except Exception as exc:
-        LOGGER.exception("Could not load page %s: %s", module_name, exc)
-        raise RuntimeError(f"Could not load page {module_name}: {exc}") from exc
 
 
 def main() -> None:
@@ -215,11 +204,18 @@ def main() -> None:
     
     # Render selected page with error handling
     try:
-        st.write(f"DEBUG: Loading page: {selected_page}")
-        renderer = load_page_renderer(pages[selected_page])
-        st.write(f"DEBUG: Renderer loaded successfully")
-        renderer(config)
-        st.write(f"DEBUG: Page rendered successfully")
+        if "Live Translator" in selected_page:
+            from pages.live_detection import render_page
+            render_page(config)
+        elif "Translation History" in selected_page:
+            from pages.history import render_page
+            render_page(config)
+        elif "Emotion Settings" in selected_page:
+            from pages.settings import render_page
+            render_page(config)
+        elif "System Status" in selected_page:
+            from pages.audio_emotion import render_page
+            render_page(config)
     except Exception as exc:
         st.error(f"Page failed to load: {exc}")
         import traceback

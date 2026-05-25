@@ -54,7 +54,7 @@ def _get_stable_gesture(gesture: str) -> bool:
         return False
     most_common = max(set(buf), key=buf.count)
     count = buf.count(most_common)
-    if count >= 5 and most_common not in ("NOTHING", ""):
+    if count >= 5 and most_common not in ("NOTHING", "", "NO HAND"):
         now = time.time()
         last = st.session_state.get("last_gesture_time", 0)
         threshold = st.session_state.get("confidence_threshold", 0.75)
@@ -67,25 +67,45 @@ def _get_stable_gesture(gesture: str) -> bool:
 
 
 def render_page(config: Dict[str, Any]) -> None:
-    st.markdown("""
-    <div style='display:flex;align-items:center;gap:12px;margin-bottom:24px;'>
-        <div class='ss-dot'></div>
-        <h1 style='font-size:2rem;font-weight:900;margin:0;'>Active Detection</h1>
+    active = st.toggle("Auto Detection", value=st.session_state.get("session_active", True))
+    st.session_state["session_active"] = active
+
+    if active:
+        badge_html = "<span class='ss-badge ss-badge-green'>DETECTING...</span>"
+    else:
+        badge_html = "<span class='ss-badge' style='background:#EF4444;color:white;'>PAUSED</span>"
+
+    st.markdown(f"""
+    <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;'>
+        <div style='display:flex;align-items:center;gap:12px;'>
+            <div class='ss-dot' style='background:{"#22C55E" if active else "#EF4444"};box-shadow:0 0 14px {"#22C55E" if active else "#EF4444"};'></div>
+            <h1 style='font-size:2rem;font-weight:900;margin:0;'>Active Detection</h1>
+        </div>
+        <div>
+            {badge_html}
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1.4, 1.2, 1.2])
 
     with col1:
-        frame = st.camera_input(
-            "webcam",
-            label_visibility="collapsed",
-            key="webcam_feed"
-        )
+        webcam_placeholder = st.empty()
 
-        current_gesture = st.session_state.get("current_gesture", "NOTHING")
+        frame = None
+        if active:
+            with webcam_placeholder.container():
+                frame = st.camera_input(
+                    "",
+                    label_visibility="collapsed",
+                    key=f"cam_{int(time.time() // 3)}"
+                )
+        else:
+            st.info("Detection is paused. Turn on Auto Detection to start.")
 
-        if frame is not None:
+        current_gesture = st.session_state.get("current_gesture", "NO HAND")
+
+        if active and frame is not None:
             try:
                 import mediapipe as mp
                 import cv2
@@ -120,7 +140,7 @@ def render_page(config: Dict[str, Any]) -> None:
                     current_gesture = gesture
 
                     stable = _get_stable_gesture(gesture)
-                    if stable and stable not in ("NOTHING", "SPACE", "DELETE"):
+                    if stable and stable not in ("NOTHING", "SPACE", "DELETE", "NO HAND"):
                         sentence = st.session_state.get("current_sentence", "")
                         if stable == "SPACE":
                             sentence += " "
@@ -131,8 +151,8 @@ def render_page(config: Dict[str, Any]) -> None:
                         st.session_state["current_sentence"] = sentence
                         st.rerun()
                 else:
-                    st.session_state["current_gesture"] = "NOTHING"
-                    current_gesture = "NOTHING"
+                    st.session_state["current_gesture"] = "NO HAND"
+                    current_gesture = "NO HAND"
 
             except Exception as e:
                 st.error(f"Detection error: {e}")
@@ -261,3 +281,11 @@ def render_page(config: Dict[str, Any]) -> None:
             <span class='ss-badge ss-badge-purple' style='margin-left:8px;'>Inquisitive</span>
         </div>
         """, unsafe_allow_html=True)
+
+    if st.session_state.get("session_active", True) and frame is not None:
+        now = time.time()
+        last_rerun = st.session_state.get("last_rerun_time", 0.0)
+        if (now - last_rerun) >= 2.0:
+            st.session_state["last_rerun_time"] = now
+            time.sleep(1.5)
+            st.rerun()
