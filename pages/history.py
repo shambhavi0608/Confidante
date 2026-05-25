@@ -3,7 +3,6 @@ from __future__ import annotations
 import streamlit as st
 import pandas as pd
 from typing import Any, Dict
-from utils.session import add_to_history
 
 
 def render_page(config: Dict[str, Any]) -> None:

@@ -55,6 +55,7 @@ def _heuristic_emotion(audio: np.ndarray, sr: int = 22050) -> tuple[str, dict]:
 
 
 def render_page(config: Dict[str, Any]) -> None:
+    st.markdown("""<style>.ss-record-btn button { background: radial-gradient(circle, #EF4444, #DC2626) !important; border-radius: 50% !important; width: 72px !important; height: 72px !important; box-shadow: 0 0 0 0 rgba(239,68,68,.4); animation: record-pulse 2s infinite; } @keyframes record-pulse { 0%{box-shadow:0 0 0 0 rgba(239,68,68,.4)} 70%{box-shadow:0 0 0 20px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)} }</style>""", unsafe_allow_html=True)
     st.markdown("""
     <h1 style='font-size:2.2rem;font-weight:900;margin-bottom:4px;'>Emotion Analysis</h1>
     """, unsafe_allow_html=True)
@@ -115,7 +116,10 @@ def render_page(config: Dict[str, Any]) -> None:
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("🎙 Record Audio (5 sec)", use_container_width=True):
+        st.markdown("<div class='ss-record-btn'>", unsafe_allow_html=True)
+        record_clicked = st.button("🎙", use_container_width=False)
+        st.markdown("</div><div class='ss-label' style='text-align:center;margin-top:8px;'>RECORD AUDIO (5 SEC)</div>", unsafe_allow_html=True)
+        if record_clicked:
             try:
                 import sounddevice as sd
                 sr = 22050

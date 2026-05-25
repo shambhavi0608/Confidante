@@ -28,163 +28,69 @@ def load_config(path: Path = CONFIG_PATH) -> Dict[str, Any]:
     return config
 
 
-def inject_dark_theme() -> None:
-    """Inject the full SignSpeak AI CSS design system."""
-    st.markdown(
-        """
-        <style>
-        [data-testid="stSidebarNav"] { display: none !important; }
-        [data-testid="stSidebarNav"] * { display: none !important; }
-        section[data-testid="stSidebar"] ul { display: none !important; }
-        header[data-testid="stHeader"] { display: none !important; }
-        #MainMenu { display: none !important; }
-        footer { display: none !important; }
-        header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
-        section[data-testid="stSidebarNav"] { display: none !important; }
-        [data-testid="stSidebarNav"] { display: none !important; }
-        section[data-testid="stSidebar"] > div > div > div > ul { display: none !important; }
-        :root {
-            --bg: #0A0A0F;
-            --card: #12121A;
-            --line: #2A2A3A;
-            --side: #0D0D15;
-            --amber: #E8893C;
-            --amber2: #F5A623;
-            --violet: #6B7FD4;
-            --text: #F0F0FF;
-            --muted: #8888AA;
-            --green: #22C55E;
-            --blue: #3B82F6;
-            --purple: #8B5CF6;
-            --red: #EF4444;
-            --pink: #EC4899;
-            --cyan: #06B6D4;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%,100% { transform: scale(1); opacity: .8; } 50% { transform: scale(1.05); opacity: 1; } }
-        @keyframes bars { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
-        @keyframes blink { 0%,45% { opacity: 1; } 46%,100% { opacity: 0; } }
-        @keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,.42); } 80% { box-shadow: 0 0 0 22px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
-        .stApp {
-            background:
-                radial-gradient(circle at 15% 5%, rgba(232,137,60,.11), transparent 25%),
-                radial-gradient(circle at 90% 15%, rgba(107,127,212,.13), transparent 28%),
-                linear-gradient(135deg, #0A0A0F 0%, #0A0A0F 55%, #11111A 100%);
-            background-attachment: fixed;
-            color: var(--text);
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
-        .stApp::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            background-image:
-                radial-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
-                linear-gradient(rgba(255,255,255,.012), rgba(255,255,255,0));
-            background-size: 22px 22px, 100% 100%;
-            opacity: .45;
-        }
-        .block-container { max-width: 1380px; padding: 30px 34px 42px; animation: fadeIn .45s ease both; }
-        [data-testid="stSidebar"] { background: var(--side) !important; border-right: 1px solid #191925; box-shadow: 18px 0 42px rgba(0,0,0,.34); }
-        [data-testid="stSidebar"] * { color: var(--text) !important; }
-        [data-testid="stSidebar"] [role="radiogroup"] label {
-            min-height: 48px; padding: 0 16px; margin: 8px 0; border-radius: 16px;
-            background: transparent; border: 1px solid transparent; transition: all .18s ease;
-        }
-        [data-testid="stSidebar"] [role="radiogroup"] input { display: none !important; }
-        [data-testid="stSidebar"] [role="radiogroup"] label:hover {
-            background: rgba(232,137,60,.09); border-color: rgba(232,137,60,.22); transform: translateX(2px);
-        }
-        [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
-            background: linear-gradient(90deg, rgba(232,137,60,.24), rgba(245,166,35,.08));
-            border-color: rgba(232,137,60,.52);
-            box-shadow: inset 3px 0 0 var(--amber), 0 0 22px rgba(232,137,60,.12);
-        }
-        h1, h2, h3 { color: var(--text) !important; letter-spacing: 0 !important; }
-        h1 { font-size: clamp(2rem, 4vw, 3.25rem) !important; font-weight: 900 !important; }
-        .stTextInput input, .stSelectbox div[data-baseweb="select"] > div {
-            background: #0D0D15 !important; border: 1px solid var(--line) !important; border-radius: 16px !important; color: var(--text) !important;
-        }
-        .stButton > button, .stDownloadButton > button {
-            border: 0; border-radius: 999px; color: #16100B; font-weight: 900; min-height: 46px;
-            background: linear-gradient(135deg, var(--amber), var(--amber2));
-            box-shadow: 0 10px 28px rgba(232,137,60,.24); transition: all .18s ease;
-        }
-        .stButton > button:hover, .stDownloadButton > button:hover { transform: translateY(-2px); filter: brightness(1.05); color: #16100B; }
-        .stTabs [data-baseweb="tab-list"] { gap: 10px; border-bottom: 1px solid var(--line); }
-        .stTabs [data-baseweb="tab"] { color: var(--muted); border-radius: 16px 16px 0 0; }
-        .stTabs [aria-selected="true"] { color: var(--text) !important; background: rgba(232,137,60,.10); }
-        div[data-testid="stSlider"] [role="slider"] { background: linear-gradient(135deg, var(--amber), var(--amber2)); box-shadow: 0 0 18px rgba(232,137,60,.35); }
-        .ss-card {
-            background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px;
-            box-shadow: 0 18px 44px rgba(0,0,0,.28); transition: all .18s ease; animation: fadeIn .45s ease both;
-        }
-        .ss-card:hover { transform: translateY(-2px); border-color: rgba(232,137,60,.35); }
-        .ss-label { color: var(--muted); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; }
-        .ss-title { color: var(--text); font-weight: 900; font-size: 1.4rem; line-height: 1.1; }
-        .ss-muted { color: var(--muted); }
-        .ss-logo { padding: 10px 4px 20px; }
-        .ss-logo-main { font-size: 1.72rem; font-weight: 950; color: var(--text); }
-        .ss-logo-sub { color: var(--muted); font-size: .85rem; margin-top: 3px; }
-        .ss-profile { display:flex; align-items:center; gap:12px; margin-top: 18px; padding: 14px; border:1px solid var(--line); border-radius:16px; background:#101018; }
-        .ss-avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,var(--amber),var(--violet)); display:grid; place-items:center; font-weight:900; color:white; }
-        .ss-dot { width:10px; height:10px; border-radius:50%; display:inline-block; background:var(--amber); box-shadow:0 0 14px var(--amber); }
-        .ss-gesture-card { min-height: 390px; display:grid; place-items:center; text-align:center; box-shadow:0 0 36px rgba(232,137,60,.18); }
-        .ss-gesture-word { font-size: clamp(3.4rem, 9vw, 7rem); color: var(--amber); font-weight: 950; text-shadow:0 0 30px rgba(232,137,60,.62); animation:pulse 2.4s ease infinite; }
-        .ss-wave { height:42px; display:flex; gap:6px; align-items:end; justify-content:center; margin-top:24px; }
-        .ss-wave span { width:7px; height:26px; border-radius:999px; background:linear-gradient(var(--amber2), var(--amber)); animation:bars 1.1s ease-in-out infinite; transform-origin:bottom; }
-        .ss-wave span:nth-child(2n) { animation-delay:.15s; height:34px; } .ss-wave span:nth-child(3n) { animation-delay:.3s; height:18px; }
-        .ss-badge { display:inline-flex; align-items:center; padding:7px 12px; border-radius:999px; font-weight:850; font-size:.82rem; }
-        .ss-badge-amber { color:#180F08; background:linear-gradient(135deg,var(--amber),var(--amber2)); }
-        .ss-badge-green { color:white; background:#22C55E; } .ss-badge-blue { color:white; background:#3B82F6; } .ss-badge-purple { color:white; background:#8B5CF6; }
-        .ss-transcript { min-height:92px; font-size:1.35rem; line-height:1.45; color:var(--text); border:1px solid var(--line); border-radius:16px; background:#0D0D15; padding:18px; }
-        .ss-cursor { display:inline-block; width:2px; height:1.25em; background:var(--amber); margin-left:4px; vertical-align:-.2em; animation:blink 1s step-end infinite; }
-        .ss-progress-row { margin:18px 0; }
-        .ss-progress-top { display:flex; justify-content:space-between; color:var(--text); font-weight:800; margin-bottom:8px; }
-        .ss-track { height:10px; background:#20202C; border-radius:999px; overflow:hidden; border:1px solid #2A2A3A; }
-        .ss-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--amber),var(--amber2)); transform-origin:left; animation:fillBar .8s ease both; }
-        .ss-history-card { display:grid; grid-template-columns:1fr auto; gap:18px; border-bottom:1px solid #242433; padding-bottom:18px; }
-        .ss-quote { color:var(--text); font-size:1.45rem; line-height:1.35; font-weight:750; margin:18px 0; }
-        .ss-record { width:76px; height:76px; border-radius:50%; border:0; display:grid; place-items:center; margin:18px auto 8px; background:#EF4444; color:white; font-size:1.9rem; animation:ring 1.7s infinite; }
-        .ss-orb { width:min(360px,70vw); aspect-ratio:1; border-radius:50%; margin:0 auto; display:grid; place-items:center; position:relative; background:radial-gradient(circle,#202036,#101018 64%); border:1px solid #31314A; box-shadow:0 0 70px rgba(107,127,212,.28); }
-        .ss-star { position:absolute; color:#F0F0FF; opacity:.75; font-size:1.35rem; animation:pulse 2s infinite; }
-        .ss-star.a { top:8%; left:18%; } .ss-star.b { top:20%; right:8%; animation-delay:.4s; } .ss-star.c { bottom:14%; left:10%; animation-delay:.8s; }
-        .ss-footer { display:flex; justify-content:center; gap:28px; color:var(--muted); font-size:.78rem; letter-spacing:.1em; margin:34px 0 8px; }
-        .stApp, .stApp * { opacity: 1 !important; }
-        .stSelectbox > div > div {
-            background: #1A1A28 !important;
-            border: 1px solid rgba(232,137,60,0.4) !important;
-            border-radius: 16px !important;
-            color: #F0F0FF !important;
-            padding: 8px 16px !important;
-        }
-        .stSelectbox > div > div > div { color: #F0F0FF !important; }
-        [data-baseweb="select"] { background: #1A1A28 !important; }
-        [data-baseweb="popover"] {
-            background: #12121A !important;
-            border: 1px solid #2A2A3A !important;
-            border-radius: 16px !important;
-        }
-        [data-baseweb="menu"] { background: #12121A !important; }
-        [data-baseweb="option"] {
-            background: #12121A !important;
-            color: #F0F0FF !important;
-            padding: 12px 16px !important;
-        }
-        [data-baseweb="option"]:hover {
-            background: rgba(232,137,60,0.15) !important;
-            color: #E8893C !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+def inject_dark_theme():
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+    [data-testid="stSidebarNav"], [data-testid="stSidebarNav"] *, section[data-testid="stSidebar"] ul, header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
+    .stApp { background: radial-gradient(ellipse at top, #1A1015 0%, #0D0A0E 60%) !important; }
+    section[data-testid="stSidebar"] { background: #0D0D15 !important; border-right: 1px solid #2A2A3A !important; }
+    section[data-testid="stSidebar"] > div { padding-top: 0 !important; }
+    .ss-logo { padding: 28px 20px 20px; border-bottom: 1px solid #2A2A3A; margin-bottom: 16px; }
+    .ss-logo-main { font-size: 1.5rem; font-weight: 900; color: #F0F0FF; }
+    .ss-logo-sub { font-size: .78rem; color: #8888AA; letter-spacing: .1em; text-transform: uppercase; margin-top: 4px; }
+    [data-testid="stRadio"] > div { gap: 4px !important; }
+    [data-testid="stRadio"] [data-baseweb="radio"] { display: none !important; }
+    [data-testid="stRadio"] label { background: transparent !important; border-radius: 12px !important; padding: 12px 16px !important; color: #8888AA !important; font-weight: 600 !important; transition: all .2s !important; border: 1px solid transparent !important; cursor: pointer; }
+    [data-testid="stRadio"] label:hover { background: rgba(232,137,60,.1) !important; color: #E8893C !important; }
+    [data-testid="stRadio"] label[data-checked="true"], [data-testid="stRadio"] label[aria-checked="true"] { background: rgba(232,137,60,.15) !important; color: #E8893C !important; border-color: rgba(232,137,60,.4) !important; }
+    .ss-card { background: #12121A; border: 1px solid #2A2A3A; border-radius: 20px; padding: 20px 22px; margin-bottom: 16px; }
+    .ss-card:hover { border-color: rgba(232,137,60,.25); transition: border-color .3s; }
+    .ss-title { font-size: 1.1rem; font-weight: 900; color: #F0F0FF; }
+    .ss-label { font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #8888AA; }
+    .ss-muted { color: #8888AA; font-size: .9rem; }
+    .ss-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: .78rem; font-weight: 700; }
+    .ss-badge-amber { background: rgba(232,137,60,.2); color: #E8893C; border: 1px solid rgba(232,137,60,.3); }
+    .ss-badge-blue { background: rgba(59,130,246,.2); color: #60A5FA; border: 1px solid rgba(59,130,246,.3); }
+    .ss-badge-purple { background: rgba(139,92,246,.2); color: #A78BFA; border: 1px solid rgba(139,92,246,.3); }
+    .ss-dot { width: 10px; height: 10px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 8px #22C55E; animation: pulse 2s infinite; }
+    .ss-gesture-card { text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1A1015 0%, #12121A 100%); border: 1px solid rgba(232,137,60,.3); box-shadow: 0 0 40px rgba(232,137,60,.08); }
+    .ss-gesture-word { font-size: 3.5rem; font-weight: 900; color: #E8893C; text-shadow: 0 0 30px rgba(232,137,60,.5); letter-spacing: .05em; }
+    .ss-transcript { background: #0D0D15; border: 1px solid #2A2A3A; border-radius: 16px; padding: 18px 20px; min-height: 80px; font-size: 1.1rem; color: #F0F0FF; line-height: 1.7; position: relative; }
+    .ss-cursor { display: inline-block; width: 2px; height: 1.1em; background: #E8893C; margin-left: 2px; vertical-align: middle; animation: blink 1s infinite; }
+    .ss-track { height: 8px; background: #2A2A3A; border-radius: 4px; overflow: hidden; }
+    .ss-fill { height: 100%; background: linear-gradient(90deg, #E8893C, #F5A623); border-radius: 4px; transition: width .5s ease; }
+    .ss-progress-row { margin-bottom: 14px; }
+    .ss-progress-top { display: flex; justify-content: space-between; font-size: .88rem; margin-bottom: 6px; color: #F0F0FF; }
+    .ss-orb { width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, #1A1015, #0D0A0E); border: 2px solid rgba(232,137,60,.3); display: flex; align-items: center; justify-content: center; margin: 0 auto; position: relative; box-shadow: 0 0 40px rgba(232,137,60,.15); }
+    .ss-star { position: absolute; color: #E8893C; font-size: 1.2rem; opacity: .7; }
+    .ss-star.a { top: 10px; right: 20px; } .ss-star.b { bottom: 15px; left: 10px; } .ss-star.c { top: 40px; left: 0; }
+    .ss-wave { display: flex; align-items: flex-end; gap: 3px; height: 32px; }
+    .ss-wave span { width: 4px; background: linear-gradient(to top, #E8893C, #F5A623); border-radius: 2px; animation: wave 1.2s ease-in-out infinite; }
+    .ss-wave span:nth-child(1){height:40%;animation-delay:0s} .ss-wave span:nth-child(2){height:70%;animation-delay:.1s} .ss-wave span:nth-child(3){height:90%;animation-delay:.2s} .ss-wave span:nth-child(4){height:60%;animation-delay:.3s} .ss-wave span:nth-child(5){height:80%;animation-delay:.4s} .ss-wave span:nth-child(6){height:50%;animation-delay:.5s} .ss-wave span:nth-child(7){height:75%;animation-delay:.6s} .ss-wave span:nth-child(8){height:45%;animation-delay:.7s}
+    .ss-footer { display: flex; gap: 24px; padding: 16px 0 0; border-top: 1px solid #2A2A3A; font-size: .75rem; color: #8888AA; letter-spacing: .1em; }
+    .ss-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #E8893C, #9B6DFF); display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; font-size: .9rem; }
+    .ss-history-card { background: #12121A; border: 1px solid #2A2A3A; border-radius: 16px; padding: 18px 20px; margin-bottom: 12px; }
+    .ss-quote { font-size: 1.05rem; color: #F0F0FF; line-height: 1.7; font-style: italic; margin: 8px 0; }
+    .stButton > button { background: linear-gradient(135deg, #E8893C, #F5A623) !important; color: #0D0A0E !important; font-weight: 800 !important; border: none !important; border-radius: 20px !important; padding: 10px 24px !important; transition: all .2s !important; box-shadow: 0 4px 20px rgba(232,137,60,.3) !important; }
+    .stButton > button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 30px rgba(232,137,60,.4) !important; }
+    .stButton > button[kind="secondary"] { background: #12121A !important; color: #F0F0FF !important; border: 1px solid #2A2A3A !important; box-shadow: none !important; }
+    .stTextInput > div > div > input { background: #0D0D15 !important; border: 1px solid #2A2A3A !important; border-radius: 12px !important; color: #F0F0FF !important; padding: 10px 14px !important; }
+    .stSelectbox > div > div { background: #12121A !important; border: 1px solid #2A2A3A !important; border-radius: 12px !important; color: #F0F0FF !important; }
+    .stSlider > div > div > div { background: linear-gradient(90deg, #E8893C, #F5A623) !important; }
+    .stTabs [data-baseweb="tab-list"] { background: #12121A !important; border-radius: 12px !important; gap: 4px !important; padding: 4px !important; }
+    .stTabs [data-baseweb="tab"] { color: #8888AA !important; border-radius: 10px !important; font-weight: 700 !important; }
+    .stTabs [aria-selected="true"] { background: rgba(232,137,60,.16) !important; color: #E8893C !important; }
+    @keyframes pulse { 0%, 100% { opacity: .65; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+    @keyframes blink { 0%, 45% { opacity: 1; } 46%, 100% { opacity: 0; } }
+    @keyframes wave { 0%, 100% { transform: scaleY(.45); } 50% { transform: scaleY(1); } }
+    </style>
+    """, unsafe_allow_html=True)
 
 
 def main() -> None:
     """Run the Streamlit application."""
-    st.set_page_config(page_title="SignSpeak AI", page_icon="🔴", layout="wide", initial_sidebar_state="expanded")
     inject_dark_theme()
     
     try:
